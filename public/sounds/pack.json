@@ -1,0 +1,164 @@
+{
+  "gain": 1,
+  "dig.stone": [
+    "dig/stone1.ogg",
+    "dig/stone2.ogg",
+    "dig/stone3.ogg",
+    "dig/stone4.ogg"
+  ],
+  "dig.grass": [
+    "dig/grass1.ogg",
+    "dig/grass2.ogg",
+    "dig/grass3.ogg",
+    "dig/grass4.ogg"
+  ],
+  "dig.gravel": [
+    "dig/gravel1.ogg",
+    "dig/gravel2.ogg",
+    "dig/gravel3.ogg",
+    "dig/gravel4.ogg"
+  ],
+  "dig.wood": [
+    "dig/wood1.ogg",
+    "dig/wood2.ogg",
+    "dig/wood3.ogg",
+    "dig/wood4.ogg"
+  ],
+  "dig.sand": [
+    "dig/sand1.ogg",
+    "dig/sand2.ogg",
+    "dig/sand3.ogg",
+    "dig/sand4.ogg"
+  ],
+  "dig.snow": [
+    "dig/snow1.ogg",
+    "dig/snow2.ogg",
+    "dig/snow3.ogg",
+    "dig/snow4.ogg"
+  ],
+  "dig.cloth": [
+    "dig/cloth1.ogg",
+    "dig/cloth2.ogg",
+    "dig/cloth3.ogg",
+    "dig/cloth4.ogg"
+  ],
+  "dig.glass": [
+    "random/glass1.ogg",
+    "random/glass2.ogg",
+    "random/glass3.ogg"
+  ],
+  "step.stone": [
+    "step/stone1.ogg",
+    "step/stone2.ogg",
+    "step/stone3.ogg",
+    "step/stone4.ogg",
+    "step/stone5.ogg",
+    "step/stone6.ogg"
+  ],
+  "step.grass": [
+    "step/grass1.ogg",
+    "step/grass2.ogg",
+    "step/grass3.ogg",
+    "step/grass4.ogg",
+    "step/grass5.ogg",
+    "step/grass6.ogg"
+  ],
+  "step.gravel": [
+    "step/gravel1.ogg",
+    "step/gravel2.ogg",
+    "step/gravel3.ogg",
+    "step/gravel4.ogg"
+  ],
+  "step.wood": [
+    "step/wood1.ogg",
+    "step/wood2.ogg",
+    "step/wood3.ogg",
+    "step/wood4.ogg",
+    "step/wood5.ogg",
+    "step/wood6.ogg"
+  ],
+  "step.sand": [
+    "step/sand1.ogg",
+    "step/sand2.ogg",
+    "step/sand3.ogg",
+    "step/sand4.ogg",
+    "step/sand5.ogg"
+  ],
+  "step.snow": [
+    "step/snow1.ogg",
+    "step/snow2.ogg",
+    "step/snow3.ogg",
+    "step/snow4.ogg"
+  ],
+  "step.glass": [
+    "step/stone1.ogg",
+    "step/stone2.ogg",
+    "step/stone3.ogg",
+    "step/stone4.ogg",
+    "step/stone5.ogg",
+    "step/stone6.ogg"
+  ],
+  "swing": [
+    "entity/player/attack/weak1.ogg",
+    "entity/player/attack/weak2.ogg",
+    "entity/player/attack/weak3.ogg",
+    "entity/player/attack/weak4.ogg"
+  ],
+  "hit": [
+    "entity/player/attack/strong1.ogg",
+    "entity/player/attack/strong2.ogg",
+    "entity/player/attack/strong3.ogg",
+    "entity/player/attack/strong4.ogg",
+    "entity/player/attack/strong5.ogg",
+    "entity/player/attack/strong6.ogg"
+  ],
+  "flint": [
+    "fire/ignite.ogg"
+  ],
+  "fuse": [
+    "random/fuse.ogg"
+  ],
+  "boom": [
+    "random/explode1.ogg",
+    "random/explode2.ogg",
+    "random/explode3.ogg",
+    "random/explode4.ogg"
+  ],
+  "hurt": [
+    "damage/hit1.ogg",
+    "damage/hit2.ogg",
+    "damage/hit3.ogg"
+  ],
+  "pick": [
+    "random/pop.ogg"
+  ],
+  "pop": [
+    "random/pop.ogg"
+  ],
+  "eat": [
+    "random/eat1.ogg",
+    "random/eat2.ogg",
+    "random/eat3.ogg"
+  ],
+  "level": [
+    "random/levelup.ogg"
+  ],
+  "bow": [
+    "random/bow.ogg"
+  ],
+  "thud": [
+    "random/bowhit1.ogg",
+    "random/bowhit2.ogg",
+    "random/bowhit3.ogg",
+    "random/bowhit4.ogg"
+  ],
+  "bones": [
+    "mob/skeleton/hurt1.ogg",
+    "mob/skeleton/hurt2.ogg",
+    "mob/skeleton/hurt3.ogg",
+    "mob/skeleton/hurt4.ogg"
+  ],
+  "rattle": [
+    "mob/skeleton/death.ogg"
+  ]
+}

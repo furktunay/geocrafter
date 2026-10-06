@@ -1,0 +1,80 @@
+{
+  "blocks": {
+    "stone": "block/stone.png",
+    "dirt": "block/dirt.png",
+    "grass_top": {
+      "file": "block/grass_block_top.png",
+      "tint": "#91bd59"
+    },
+    "grass_side": "block/grass_block_side.png",
+    "sand": "block/sand.png",
+    "gravel": "block/gravel.png",
+    "water": {
+      "file": "block/water_still.png",
+      "tint": "#3f76e4"
+    },
+    "asphalt": "block/gray_concrete_powder.png",
+    "pavement": "block/smooth_stone.png",
+    "paving": "block/mud_bricks.png",
+    "concrete": "block/light_gray_concrete.png",
+    "concrete_dark": "block/gray_concrete.png",
+    "white_tile": "block/white_concrete.png",
+    "brick": "block/bricks.png",
+    "beige_tile": "block/sandstone_top.png",
+    "steel": "block/iron_block.png",
+    "glass": "block/glass.png",
+    "glass_dark": "block/gray_stained_glass.png",
+    "roof_gray": "block/andesite.png",
+    "roof_kawara": "block/deepslate_tiles.png",
+    "roof_blue": "block/blue_terracotta.png",
+    "roof_brown": "block/terracotta.png",
+    "plaster": "block/white_terracotta.png",
+    "planks": "block/oak_planks.png",
+    "log_side": "block/oak_log.png",
+    "log_top": "block/oak_log_top.png",
+    "leaves": {
+      "file": "block/oak_leaves.png",
+      "tint": "#48b518"
+    },
+    "canopy": {
+      "file": "block/oak_leaves.png",
+      "tint": "#48b518"
+    },
+    "sakura": "block/cherry_leaves.png",
+    "floor": "block/polished_diorite.png",
+    "bedrock": "block/bedrock.png",
+    "farmland": "block/farmland.png",
+    "turf": "block/moss_block.png",
+    "blue_panel": "block/light_blue_terracotta.png",
+    "brown_tile": "block/brown_terracotta.png",
+    "vermilion": "block/red_concrete.png",
+    "lamp": "block/glowstone.png",
+    "copper": "block/oxidized_copper.png",
+    "snow": "block/snow.png",
+    "tnt_side": "block/tnt_side.png",
+    "tnt_top": "block/tnt_top.png",
+    "tnt_bottom": "block/tnt_bottom.png"
+  },
+  "items": {
+    "sword": "item/iron_sword.png",
+    "pickaxe": "item/iron_pickaxe.png",
+    "flint": "item/flint_and_steel.png",
+    "bow": "item/bow.png",
+    "egg": "item/skeleton_spawn_egg.png",
+    "bread": "item/bread.png"
+  },
+  "gui": {
+    "hotbar": "gui/sprites/hud/hotbar.png",
+    "hotbar_selection": "gui/sprites/hud/hotbar_selection.png",
+    "heart_container": "gui/sprites/hud/heart/container.png",
+    "heart_full": "gui/sprites/hud/heart/full.png",
+    "heart_half": "gui/sprites/hud/heart/half.png",
+    "food_empty": "gui/sprites/hud/food_empty.png",
+    "food_full": "gui/sprites/hud/food_full.png",
+    "food_half": "gui/sprites/hud/food_half.png",
+    "xp_background": "gui/sprites/hud/experience_bar_background.png",
+    "xp_progress": "gui/sprites/hud/experience_bar_progress.png",
+    "inventory": "gui/container/inventory.png",
+    "chest": "gui/container/generic_54.png"
+  }
+}

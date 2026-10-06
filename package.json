@@ -1,0 +1,26 @@
+{
+  "name": "plateau-craft",
+  "version": "1.0.0",
+  "description": "Real-life voxel sandbox built from PLATEAU 3D city data",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sounds": "node scripts/copy-sounds.mjs",
+    "sounds:prune": "node scripts/prune-pack.mjs sounds",
+    "textures": "node scripts/copy-textures.mjs",
+    "textures:prune": "node scripts/prune-pack.mjs textures"
+  },
+  "dependencies": {
+    "@mapbox/vector-tile": "^3.0.0",
+    "geotiff": "^3.0.5",
+    "pbf": "^5.1.2",
+    "proj4": "^2.22.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.2"
+  }
+}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Street Craft — Gerçek sokak fotoğrafında Minecraft</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="underwater"></div>
+    <div id="hurt"></div>
+
+    <div id="hud" class="hidden">
+      <div id="info"></div>
+      <div id="map-wrap"><canvas id="minimap"></canvas><span id="north">K</span></div>
+      <div id="crosshair"></div>
+      <div id="target"></div>
+      <div id="place-title"></div>
+      <div id="toast"></div>
+      <div id="nav" class="hidden"><i>W</i><i>A</i><i>S</i><i>D</i></div>
+
+      <div id="mc">
+        <div id="mc-name"></div>
+        <div id="mc-status">
+          <canvas id="mc-hearts" width="81" height="9"></canvas>
+          <canvas id="mc-food" width="81" height="9"></canvas>
+        </div>
+        <div id="mc-xp"><i id="mc-xp-fill"></i><b id="mc-level"></b></div>
+        <div id="mc-hotbar"></div>
+      </div>
+    </div>
+
+    <div id="inventory" class="hidden">
+      <div class="mc-window catalog">
+        <h4>Tüm eşyalar</h4>
+        <div class="mc-grid" id="cat-grid"></div>
+      </div>
+      <div class="mc-window bag">
+        <div class="mc-top">
+          <div class="mc-armor"><i></i><i></i><i></i><i></i></div>
+          <canvas id="mc-doll" width="51" height="72"></canvas>
+          <div class="mc-craft">
+            <h4>Üretim</h4>
+            <div class="mc-craft-row">
+              <div class="mc-grid two" id="craft-grid"></div>
+              <span class="mc-arrow"></span>
+              <div class="mc-grid one" id="craft-out"></div>
+            </div>
+            <p id="craft-hint">Kütük → tahta · kum + çakıl → TNT · çelik + çakıl → çakmak</p>
+          </div>
+        </div>
+        <div class="mc-grid" id="store-grid"></div>
+        <div class="mc-grid bar" id="bar-grid"></div>
+      </div>
+      <canvas id="mc-cursor" width="48" height="48"></canvas>
+      <div id="mc-tip"></div>
+    </div>
+
+    <div id="death" class="hidden">
+      <h2>Öldün!</h2>
+      <p id="death-score"></p>
+      <button id="respawn" type="button">Yeniden doğ</button>
+    </div>
+
+    <div id="overlay">
+      <div class="panel">
+        <h1>STREET <span>CRAFT</span></h1>
+        <p class="tagline">Gerçek 360° sokak fotoğrafının içinde Minecraft. Fotoğraftan fotoğrafa yürü, bloklarını koy, gerçek sokağı TNT ile havaya uçur — altından blok dünyası çıkar.</p>
+
+        <div id="status"><div id="bar"><div id="bar-fill"></div></div><span id="status-text">Hazırlanıyor…</span></div>
+        <button id="play" disabled>Yükleniyor…</button>
+
+        <h3>Konum</h3>
+        <div id="locations"></div>
+        <form id="custom">
+          <input id="coords" type="text" placeholder="Enlem, boylam (örn. 52.3731, 4.8932)" autocomplete="off" />
+          <button type="submit">Git</button>
+        </form>
+
+        <h3>Kontroller</h3>
+        <div id="controls">
+          <div><kbd>W</kbd> baktığın oka ışınlan · <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> sol, geri, sağ (oka tıklamak da olur)</div>
+          <div><kbd>Sol tık</kbd> kır / vur · <kbd>Sağ tık</kbd> koy / kullan</div>
+          <div><kbd>1</kbd>–<kbd>9</kbd>, tekerlek: eşya seç · <kbd>E</kbd> envanter ve üretim</div>
+          <div>TNT koy, çakmakla <kbd>sağ tık</kbd>: fitil yanar, 4 saniye sonra patlar</div>
+          <div>Yay: <kbd>sağ tık</kbd> basılı tut, bırakınca ok atar · iskelet yumurtası: <kbd>sağ tık</kbd> ile bırak · ekmek: ye</div>
+          <div><kbd>F</kbd> serbest uçuş (fotoğraf yamulur) · <kbd>G</kbd> fotoğrafa dön</div>
+          <div><kbd>R</kbd> iki kez: bu haritayı sıfırla · <kbd>P</kbd> fotoğrafı aç/kapat · <kbd>M</kbd> harita · <kbd>F3</kbd> bilgi</div>
+        </div>
+        <div id="edits-row">
+          <span id="edits-count"></span>
+          <span class="reset-buttons">
+            <button id="reset-edits" type="button">Bu haritayı sıfırla</button>
+            <button id="reset-all" type="button">Tüm haritaları sıfırla</button>
+          </span>
+        </div>
+
+        <details id="more">
+          <summary>Mapillary token (isteğe bağlı, diğer şehirler için)</summary>
+          <form id="token-form">
+            <input id="token" type="password" placeholder="Mapillary client token" autocomplete="off" />
+            <button type="submit">Kaydet</button>
+          </form>
+          <p class="hint" id="token-state"></p>
+        </details>
+
+        <p class="credits">
+          Amsterdam: panoramalar <a href="https://api.data.amsterdam.nl/panorama/" target="_blank" rel="noopener">Gemeente Amsterdam</a> açık verisi ·
+          yükseklik <a href="https://www.ahn.nl" target="_blank" rel="noopener">AHN</a> (PDOK) ·
+          bina sınırları <a href="https://3dbag.nl" target="_blank" rel="noopener">3D BAG</a>, CC BY 4.0 ·
+          Türkiye: <a href="https://panoramax.fr" target="_blank" rel="noopener">Panoramax</a> katkıcıları, CC BY-SA 4.0 ·
+          Yollar/su: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıcıları,
+          <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ·
+          Diğer: <a href="https://www.mlit.go.jp/plateau/" target="_blank" rel="noopener">PLATEAU</a>, GSI, Terrarium, Mapillary
+        </p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
