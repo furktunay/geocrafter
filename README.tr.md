@@ -120,3 +120,8 @@ kullanma hakkın olan dosyaları koy ve başkasının dosyalarını derlemenle b
 - Kullanıldığı yerde gönüllü panoramaları: [Panoramax](https://panoramax.fr) katkıcıları, CC BY-SA 4.0
 - Street View: © Google; oyuncunun kendi anahtarıyla Map Tiles API üzerinden gösterilir
 - Menü yazı tipi: [Jersey 15](https://fonts.google.com/specimen/Jersey+15), SIL Open Font License, Google Fonts'tan yüklenir
+
+## Lisans
+
+Kod [MIT lisansı](LICENSE) altındadır. Harita verisi, sokak fotoğrafları ve yazı tipi yukarıda
+sayılan kendi lisanslarını korur; eklediğin doku ya da ses paketinin sorumluluğu sendedir.

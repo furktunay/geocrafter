@@ -147,3 +147,8 @@ build` copies `public/` into `dist/` as it is.
 - Volunteer panoramas where used: [Panoramax](https://panoramax.fr) contributors, CC BY-SA 4.0
 - Street View: © Google, shown through the Map Tiles API with the player's own key
 - Menu typeface: [Jersey 15](https://fonts.google.com/specimen/Jersey+15), SIL Open Font License, loaded from Google Fonts
+
+## Licence
+
+The code is under the [MIT licence](LICENSE). The map data, the street photos and the typeface keep
+their own licences, listed above; a texture or sound pack you add is yours to answer for.
