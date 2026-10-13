@@ -5,11 +5,13 @@ oyunudur. Sokak seviyesinde çekilmiş bir panoramanın içinde durursun, fotoğ
 atarsın, fotoğrafın içine blok koyarsın, gerçek yolu kazar, gerçek binaları patlatırsın. Fotoğrafın
 altında harita verisinden kurulmuş bir blok dünyası vardır; kırdığın her yerde o görünür.
 
+Adı fikrin kendisi: GeoGuessr ile Minecraft'ın karışımı. Birinin gerçek sokakları, öbürünün blokları.
+
 Yapan: [furk.ai](https://www.instagram.com/furk.ai/). Eski adı **Street Craft** (StreetCraft) idi;
 ilk videolardaki logoda o yazar.
 
 Deneysel bir projedir. **Resmî bir Minecraft ürünü değildir; Mojang ya da Microsoft tarafından
-onaylanmamıştır ve onlarla bağı yoktur.** Google ile de bağı yoktur. Bu depodaki bütün çizimleri ve
+onaylanmamıştır ve onlarla bağı yoktur.** Google ve GeoGuessr ile de bağı yoktur. Bu depodaki bütün çizimleri ve
 sesleri oyunun kendi kodu üretir; başka bir oyunun dosyası yoktur.
 
 English: [README.md](README.md)

@@ -8,10 +8,10 @@
 // to pay for, once those are gone too (see usage() and cap()).
 
 const API = 'https://tile.googleapis.com/v1';
-const SESSION_KEY = 'streetcraft:google-session';
-const USAGE_KEY = 'streetcraft:google-usage';
-export const GOOGLE_KEY = 'streetcraft:google-key';
-export const PAID_KEY = 'streetcraft:google-paid';
+const SESSION_KEY = 'geocrafter:google-session';
+const USAGE_KEY = 'geocrafter:google-usage';
+export const GOOGLE_KEY = 'geocrafter:google-key';
+export const PAID_KEY = 'geocrafter:google-paid';
 // Google's terms for the Street View Tiles of this API, as published in October 2026.
 export const FREE_TILES = 100000; // free per month; 2 USD per 1000 after that
 export const DAILY_QUOTA = 15000; // what a project may ask for per day unless its quota was raised

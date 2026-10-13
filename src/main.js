@@ -1,3 +1,4 @@
+import './storage.js'; // first: saved data from the project's earlier names is moved over
 import * as THREE from 'three';
 import { SEA_Y, MIN_EDIT_Y, FAR_TILE, FAR_RADIUS } from './config.js';
 import { Projection } from './geo.js';
@@ -23,8 +24,8 @@ import { tx, localize, lang, locale, LANGS, LANG_KEY } from './i18n.js';
 const REACH_WALK = 9;
 const REACH_LOCKED = 80; // standing in a photo, you build at a distance
 const MELEE = 6;
-const SLOTS_KEY = 'streetcraft:slots:v1';
-const XP_KEY = 'streetcraft:xp:v1';
+const SLOTS_KEY = 'geocrafter:slots:v1';
+const XP_KEY = 'geocrafter:xp:v1';
 const $ = (id) => document.getElementById(id);
 
 // Street photos are the game: a place is only offered where there are some. The free sources
@@ -49,7 +50,7 @@ const LOCATIONS = [
 const samePlace = (a, b) => Math.abs(a.lat - b.lat) < 1e-4 && Math.abs(a.lon - b.lon) < 1e-4;
 
 // Places the player added (Google only), kept in this browser: [{ name, lat, lon }].
-const PLACES_KEY = 'streetcraft:places';
+const PLACES_KEY = 'geocrafter:places';
 function loadPlaces() {
   try {
     const list = JSON.parse(localStorage.getItem(PLACES_KEY));
@@ -65,7 +66,7 @@ const savePlaces = () => localStorage.setItem(PLACES_KEY, JSON.stringify(myPlace
 // The game starts on the free sources. Google is used once the player switches it on in Options;
 // the key is the one saved in this browser (a key in .env.local only counts while developing, so
 // a build never carries one).
-const GOOGLE_ON = 'streetcraft:google-on';
+const GOOGLE_ON = 'geocrafter:google-on';
 const googleKey = localStorage.getItem(GOOGLE_KEY) || (import.meta.env.DEV ? import.meta.env.VITE_GOOGLE_MAPS_KEY || '' : '');
 const googleOn = !!googleKey && localStorage.getItem(GOOGLE_ON) === '1';
 
@@ -115,7 +116,7 @@ const turn = params.has('grid') ? +params.get('grid') || 0
   : await gridTurn(loc.lon, loc.lat);
 const proj = new Projection(loc.lon, loc.lat, turn);
 // blocks are saved in grid coordinates: a turned grid keeps its own set
-const world = new World(scene, materials, `plateaucraft:v2:${loc.lat.toFixed(5)},${loc.lon.toFixed(5)}${turn ? `:t${turn}` : ''}`);
+const world = new World(scene, materials, `geocrafter:v2:${loc.lat.toFixed(5)},${loc.lon.toFixed(5)}${turn ? `:t${turn}` : ''}`);
 const player = new Player(world);
 const sky = new Sky(scene, materials);
 const hand = new Hand();
@@ -268,7 +269,7 @@ let photoOn = true;
 let calibrating = false;
 let clip = 0; // metres of fully loaded voxel terrain around the player
 let elevOffset = 0;
-let radius = +localStorage.getItem('plateaucraft:radius') || (survey ? 9 : 12); // laser-scan tiles are heavy
+let radius = +localStorage.getItem('geocrafter:radius') || (survey ? 9 : 12); // laser-scan tiles are heavy
 world.setRadius(radius);
 const keys = new Set();
 const view = new THREE.Vector3();
@@ -331,7 +332,7 @@ function setPhoto() {
 let showScreen = () => {};
 
 // How fast the player gets around, as a multiple of the unhurried pace the game started with.
-const PACE_KEY = 'streetcraft:pace';
+const PACE_KEY = 'geocrafter:pace';
 const PACE = THREE.MathUtils.clamp(+localStorage.getItem(PACE_KEY) || 1.5, 0.75, 3);
 let paceNow = PACE;
 function setPace(v) {
@@ -448,7 +449,7 @@ function buildMenu() {
   all.addEventListener('click', () => {
     if (all.dataset.armed) {
       for (const m of savedMaps()) localStorage.removeItem(m.key);
-      for (const k of Object.keys(localStorage)) if (k.startsWith('streetcraft:chests:')) localStorage.removeItem(k);
+      for (const k of Object.keys(localStorage)) if (k.startsWith('geocrafter:chests:')) localStorage.removeItem(k);
       chests = {};
       world.resetEdits();
       refreshEdits();
@@ -527,7 +528,7 @@ function savedMaps() {
   const out = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (!/^plateaucraft:v[12]:/.test(key)) continue;
+    if (!/^geocrafter:v[12]:/.test(key)) continue;
     let count = 0;
     try {
       for (const [, list, body] of JSON.parse(localStorage.getItem(key))) count += list.length + (body ? body.length : 0);
@@ -801,7 +802,7 @@ document.addEventListener('keydown', (e) => {
   else if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
     radius = Math.max(4, Math.min(28, radius + (e.code === 'BracketRight' ? 2 : -2)));
     world.setRadius(radius);
-    localStorage.setItem('plateaucraft:radius', radius);
+    localStorage.setItem('geocrafter:radius', radius);
     ui.toast(`Block detail distance: ${radius * 16} m`);
   }
 });
@@ -1041,7 +1042,7 @@ function netherLife() {
 }
 
 // ---- chests: 27 slots each, kept per place like the block changes.
-const CHESTS_KEY = world.storageKey.replace('plateaucraft:v2:', 'streetcraft:chests:');
+const CHESTS_KEY = world.storageKey.replace('geocrafter:v2:', 'geocrafter:chests:');
 let chests = {};
 try {
   chests = JSON.parse(localStorage.getItem(CHESTS_KEY)) || {};

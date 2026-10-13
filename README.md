@@ -5,11 +5,13 @@ stand in a street-level panorama, step from photo to photo, put blocks into the 
 real road and blow up the real buildings. Underneath the photo there is a block world built from map
 data, and it shows wherever you break through.
 
+The name is the idea: GeoGuessr meets Minecraft. The real streets of the one, the blocks of the other.
+
 Made by [furk.ai](https://www.instagram.com/furk.ai/). Formerly called **Street Craft** (StreetCraft),
 the name on the logo in the first videos.
 
 An experimental project. **Not an official Minecraft product. Not approved by or associated with
-Mojang or Microsoft.** Not affiliated with Google either. Every drawing and sound in this repository
+Mojang or Microsoft.** Not affiliated with Google or GeoGuessr either. Every drawing and sound in this repository
 is made by the game's own code; no other game's files are included.
 
 Türkçe: [README.tr.md](README.tr.md)

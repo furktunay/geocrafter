@@ -8,7 +8,7 @@ import { PATCH_TOP } from './materials.js';
 const CELL = 0.005; // degrees per search cell (~500 m; small enough to stay under the API's result cap)
 const DEFAULT_HEIGHT = 2.0; // camera height above the ground when nothing better is known
 const SURVEY_HEIGHT = 2.4; // same, for survey vehicles, until measured from their own photos
-const CALIB_KEY = 'plateaucraft:calib:v2'; // v1 kept headings and offsets against north; the grid may be turned now
+const CALIB_KEY = 'geocrafter:calib:v2'; // v1 kept headings and offsets against north; the grid may be turned now
 const DEPTH_SIZE = 1024;
 const HD_MAX = 8192; // widest panorama texture kept on the GPU (8000 x 4000 is ~128 MB)
 const MASK = 27; // degrees below the horizon where a survey vehicle starts to cover the ground
@@ -259,7 +259,7 @@ export class PanoManager {
       const saved = localStorage.getItem(CALIB_KEY);
       if (saved) Object.assign(this.calib, JSON.parse(saved));
       // from before the grid could turn: camera heights still hold, poses do not
-      else Object.assign(this.calib.seq, (JSON.parse(localStorage.getItem('plateaucraft:calib:v1') || '{}').seq) || {});
+      else Object.assign(this.calib.seq, (JSON.parse(localStorage.getItem('geocrafter:calib:v1') || '{}').seq) || {});
     } catch (e) {
       console.warn('calibration data unreadable', e);
     }

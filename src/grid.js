@@ -14,8 +14,8 @@ const ZOOM = 14;
 // streets do, so the look narrows until something clear turns up. [metres, agreement 0..1]
 const RANGES = [[140, 0.45], [70, 0.4], [40, 0.3]];
 const STREETS = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service', 'busway']);
-const TURN_KEY = 'streetcraft:turn:v1:';
-export const ALIGN_KEY = 'streetcraft:align'; // '0' = keep the grid north-up
+const TURN_KEY = 'geocrafter:turn:v1:';
+export const ALIGN_KEY = 'geocrafter:align'; // '0' = keep the grid north-up
 
 // Compass bearing (degrees, -45..45) for the grid's -z axis at a place; 0 if the streets have
 // no common direction or the map cannot be read. Remembered per place: the player's blocks are

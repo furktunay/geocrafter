@@ -2,7 +2,7 @@
 // sentence up for the chosen language and falls back to the English. Keys with {0}, {1}… match
 // sentences with something variable in them ('Crafted: Planks').
 
-export const LANG_KEY = 'streetcraft:lang';
+export const LANG_KEY = 'geocrafter:lang';
 export const LANGS = { en: 'English', tr: 'Türkçe', es: 'Español' };
 
 function pick() {
