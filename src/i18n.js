@@ -49,10 +49,11 @@ const WORDS = {
   'Google tile cap reached: no more photos can be loaded here (see Options)': ['Google karo sınırına ulaşıldı: burada daha fazla fotoğraf yüklenemez (Seçenekler\'e bak)', 'Límite de teselas de Google alcanzado: aquí no se pueden cargar más fotos (mira Opciones)'],
   'Format: 52.3731, 4.8932': ['Biçim: 52.3731, 4.8932', 'Formato: 52.3731, 4.8932'],
   'Playing with free street photos': ['Ücretsiz sokak fotoğraflarıyla oynuyorsun', 'Juegas con fotos de calle gratuitas'],
-  'Connect Google Street View for sharp photos of almost every street on Earth': [
-    'Dünyanın neredeyse her sokağını keskin görmek için Google Street View\'u bağla',
-    'Conecta Google Street View para ver con nitidez casi cualquier calle del mundo',
+  'Google Street View shows almost every street on Earth, in sharper photos': [
+    'Google Street View dünyanın neredeyse her sokağını daha keskin fotoğraflarla gösterir',
+    'Google Street View muestra casi cualquier calle del mundo, con fotos más nítidas',
   ],
+  'Connect the Google Street View API': ['Google Street View API\'sini bağla', 'Conectar la API de Google Street View'],
   'Google Street View is on': ['Google Street View açık', 'Google Street View activado'],
   'On real streets!': ['Gerçek sokaklarda!', '¡En calles reales!'],
   'Break the asphalt too!': ['Asfaltı da kır!', '¡Rompe también el asfalto!'],

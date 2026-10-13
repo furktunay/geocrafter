@@ -360,7 +360,8 @@ function buildMenu() {
   // the free photos are the default; say plainly what the Google key adds
   $('promo').classList.toggle('on', !!google);
   $('promo-title').textContent = tx(google ? 'Google Street View is on' : 'Playing with free street photos');
-  $('promo-text').textContent = google ? '' : tx('Connect Google Street View for sharp photos of almost every street on Earth');
+  $('promo-text').textContent = google ? '' : tx('Google Street View shows almost every street on Earth, in sharper photos');
+  $('promo').addEventListener('click', openGoogleOptions);
   buildPlaces();
   $('custom').addEventListener('submit', addPlace);
   // how fast the player gets around: the steps between photos, and flying
@@ -430,6 +431,7 @@ function buildMenu() {
       $('promo').classList.remove('on');
       $('promo-title').textContent = tx('Google Street View is not working');
       $('promo-text').textContent = tx('See Options for the reason');
+      $('connect').textContent = tx('Options…');
     });
   }
   refreshUsage();
@@ -479,7 +481,7 @@ function buildPlaces() {
     if (locked) b.insertAdjacentHTML('beforeend', `<em>${tx('Needs Google Street View')}</em>`);
     if (locked) b.className = 'locked';
     else if (samePlace(l, loc)) b.className = 'current';
-    b.addEventListener('click', () => (locked ? (showScreen('options'), refreshUsage()) : goTo(l)));
+    b.addEventListener('click', () => (locked ? openGoogleOptions() : goTo(l)));
     if (!mine) return box.append(b);
     const wrap = document.createElement('div');
     wrap.className = 'mine';
@@ -572,6 +574,25 @@ function refreshUsage() {
   const report = panos.current && panos.current.report;
   $('google-report').classList.toggle('hidden', !report);
   if (report) $('google-report').href = report;
+}
+
+// Options, opened because Google is wanted (the call-out on the first screen, a locked place):
+// a gold light for a few seconds behind what to look at there, so nobody has to search for it.
+let shining = 0;
+function openGoogleOptions() {
+  showScreen('options');
+  refreshUsage();
+  const at = !google ? $('google-connect') // not connected: the switch and the box the key goes in
+    : usage().month >= cap() ? $('google-usage') // connected, and this month's tiles are used up
+    : $('promo').classList.contains('on') ? null : $('google-connect'); // refused: the reason is there
+  if (!at) return;
+  at.closest('details').open = true;
+  at.scrollIntoView({ block: 'center' });
+  document.querySelector('.shine')?.classList.remove('shine'); // one light at a time
+  void at.offsetWidth; // asked for again while it is lit: the light starts over
+  at.classList.add('shine');
+  clearTimeout(shining);
+  shining = setTimeout(() => at.classList.remove('shine'), 3400);
 }
 
 // In the game: R twice within three seconds puts this place back as it was.

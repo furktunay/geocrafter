@@ -101,10 +101,11 @@
           </div>
           <div id="status"><div id="bar"><div id="bar-fill"></div></div><span id="status-text" data-t>Getting ready…</span></div>
         </div>
-        <button id="promo" type="button" data-go="options">
+        <div id="promo">
           <b id="promo-title"></b>
           <span id="promo-text"></span>
-        </button>
+          <button id="connect" type="button" data-t>Connect the Google Street View API</button>
+        </div>
       </section>
 
       <section class="screen hidden" data-screen="places">
@@ -167,15 +168,17 @@
           <details class="more" open>
             <summary data-t>Google Street View (optional, sharper photos)</summary>
             <p class="hint lead" data-t>The game starts with free street photos. With your own Google Maps key (Map Tiles API enabled) almost every street on Earth opens up, in much sharper photos.</p>
-            <label class="setting">
-              <input id="google-on" type="checkbox" />
-              <span data-t>Use Google Street View</span>
-            </label>
-            <form id="google-form" class="key-form">
-              <input id="google-key" type="password" placeholder="Google Maps API key" autocomplete="off" />
-              <button type="submit" data-t>Save</button>
-            </form>
-            <p class="hint" id="google-state"></p>
+            <div id="google-connect">
+              <label class="setting">
+                <input id="google-on" type="checkbox" />
+                <span data-t>Use Google Street View</span>
+              </label>
+              <form id="google-form" class="key-form">
+                <input id="google-key" type="password" placeholder="Google Maps API key" autocomplete="off" />
+                <button type="submit" data-t>Save</button>
+              </form>
+              <p class="hint" id="google-state"></p>
+            </div>
             <p class="hint" id="google-usage"></p>
             <form id="google-cap-form" class="key-form">
               <input id="google-cap" type="number" min="1" step="1000" autocomplete="off" />

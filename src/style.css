@@ -823,6 +823,7 @@ button:disabled {
 
 /* stone buttons: a speckled grey face, lit on the top and left edges, shaded on the bottom */
 .menu button,
+#promo button,
 .screen > .back {
   height: calc(20 * var(--u));
   padding: 0 calc(4 * var(--u));
@@ -845,6 +846,8 @@ button:disabled {
 
 .menu button:hover:not(:disabled),
 .menu button:focus-visible,
+#promo button:hover,
+#promo button:focus-visible,
 .screen > .back:hover,
 .screen > .back:focus-visible {
   background-color: #7c86b8;
@@ -960,6 +963,25 @@ button:disabled {
   border: 2px solid #000;
   outline: 1px solid var(--line);
   padding: 8px 10px;
+}
+
+/* Options, reached from the call-out or a locked place: a gold light behind the next thing to do
+   there, for a few seconds (main.js: openGoogleOptions) */
+.shine {
+  animation: shine 0.55s ease-in-out 6 alternate;
+}
+
+.shine input[type='password'] {
+  outline-color: var(--gold);
+}
+
+@keyframes shine {
+  to {
+    background-color: rgba(255, 216, 61, 0.34);
+    box-shadow:
+      0 0 0 6px rgba(255, 216, 61, 0.34),
+      0 0 26px 12px rgba(255, 216, 61, 0.7);
+  }
 }
 
 #controls {
@@ -1090,6 +1112,7 @@ kbd {
   line-height: 1.35;
   color: #fff;
   text-shadow: var(--u) var(--u) 0 #2b2200;
+  cursor: pointer;
   background: rgba(40, 30, 0, 0.72);
   border: var(--u) solid #000;
   outline: none;
@@ -1119,7 +1142,14 @@ kbd {
   color: #9be88a;
 }
 
-#promo.on span {
+#promo button {
+  justify-self: center;
+  width: min(calc(170 * var(--u)), 100%);
+  margin-top: calc(2.5 * var(--u));
+}
+
+#promo.on span,
+#promo.on button {
   display: none;
 }
 
@@ -1175,6 +1205,7 @@ kbd {
 }
 
 .menu button,
+#promo button,
 .screen > .back {
   font-size: calc(10 * var(--u));
   letter-spacing: 0.03em;
