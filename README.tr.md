@@ -8,19 +8,33 @@ Deneysel bir projedir. Yapan: [furk.ai](https://www.instagram.com/furk.ai/). Esk
 Craft** (StreetCraft) idi; ilk videolardaki logoda o yazar.
 
 **Resmî bir Minecraft ürünü değildir; Mojang ya da Microsoft tarafından onaylanmamıştır ve onlarla
-bağı yoktur.** Google ve GeoGuessr ile de bağı yoktur. Bu depodaki bütün çizimler ve sesler oyunun
-kendisine aittir.
+bağı yoktur.** Google ve GeoGuessr ile de bağı yoktur.
+
+`public/textures` ve `public/sounds` klasörlerindeki dokular ve sesler Minecraft'tan gelir ve
+Mojang'a aittir. Burada yalnızca kişisel kullanım için dururlar; paylaşılmamaları gerekir. Onlar
+olmadan oyun kendi çizimlerini ve seslerini kullanır.
 
 English: [README.md](README.md)
 
 ## Çalıştırma
 
-```bash
-npm install
-npm run dev
-```
+Adımlar Windows'ta ve macOS'ta aynıdır.
 
-Sonra tarayıcıda `http://localhost:5173`. Node 20 ya da üstü gerekir.
+1. [Node.js](https://nodejs.org) 20 ya da üstünü kur.
+2. Projeyi al: `git clone https://github.com/furktunay/geocrafter.git`, ya da GitHub'dan ZIP olarak
+   indirip aç.
+3. Proje klasöründe bir terminal aç (macOS'ta Terminal, Windows'ta Komut İstemi ya da PowerShell)
+   ve şunları çalıştır:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+4. Tarayıcıda `http://localhost:5173` adresini aç. O port doluysa terminal kullanılacak adresi
+   yazar.
+
+Windows'ta PowerShell `npm` komutunu çalıştırmayı reddederse Komut İstemi'ni kullan.
 
 ## Sokak fotoğrafları
 
@@ -53,4 +67,5 @@ Bilmen gerekenler:
 - Street View: © Google; oyuncunun kendi anahtarıyla Map Tiles API üzerinden gösterilir
 - Menü yazı tipi: [Jersey 15](https://fonts.google.com/specimen/Jersey+15), SIL Open Font License
 
-Kod [MIT lisansı](LICENSE) altındadır.
+Kod [MIT lisansı](LICENSE) altındadır. `public/textures` ve `public/sounds` içindeki Minecraft
+dosyaları Mojang'a aittir ve bu lisansın kapsamında değildir.

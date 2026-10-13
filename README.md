@@ -8,19 +8,33 @@ An experimental project, made by [furk.ai](https://www.instagram.com/furk.ai/). 
 **Street Craft** (StreetCraft), the name on the logo in the first videos.
 
 **Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.** Not
-affiliated with Google or GeoGuessr either. Every drawing and sound in this repository is the game's
-own.
+affiliated with Google or GeoGuessr either.
+
+The textures and sounds in `public/textures` and `public/sounds` come from Minecraft and belong to
+Mojang. They are here for private use only and must not be shared. Without them the game uses its
+own drawings and sounds.
 
 Türkçe: [README.tr.md](README.tr.md)
 
 ## Run it
 
-```bash
-npm install
-npm run dev
-```
+The steps are the same on Windows and macOS.
 
-Then open `http://localhost:5173`. Node 20 or newer.
+1. Install [Node.js](https://nodejs.org) 20 or newer.
+2. Get the project: `git clone https://github.com/furktunay/geocrafter.git`, or download it from
+   GitHub as a ZIP and unpack it.
+3. Open a terminal in the project folder (Terminal on macOS, Command Prompt or PowerShell on
+   Windows) and run:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+4. Open `http://localhost:5173` in your browser. If that port is taken, the terminal prints the
+   address to use instead.
+
+On Windows, if PowerShell refuses to run `npm`, use Command Prompt.
 
 ## Street photos
 
@@ -52,4 +66,5 @@ Good to know:
 - Street View: © Google, shown through the Map Tiles API with the player's own key
 - Menu typeface: [Jersey 15](https://fonts.google.com/specimen/Jersey+15), SIL Open Font License
 
-The code is under the [MIT licence](LICENSE).
+The code is under the [MIT licence](LICENSE). The Minecraft files in `public/textures` and
+`public/sounds` are Mojang's and are not covered by it.
