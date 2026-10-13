@@ -241,10 +241,11 @@ export class Mobs {
     this.v = new THREE.Vector3();
   }
 
-  // A body box against the blocks, feet at (x, y, z).
-  free(x, y, z, def = KINDS.skeleton) {
+  // A body box against the blocks, feet at (x, y, z). The soles are looked at a little above
+  // the floor (`sole`), so that walking along it is not walking into it.
+  free(x, y, z, def = KINDS.skeleton, sole = 0.05) {
     const w = this.world;
-    for (const h of [0.05, 0.95, def.height - 0.05]) {
+    for (const h of [sole, 0.95, def.height - 0.05]) {
       const by = Math.floor(y + h);
       for (const dx of [-def.half, def.half]) {
         for (const dz of [-def.half, def.half]) if (SOLID[w.getBlock(Math.floor(x + dx), by, Math.floor(z + dz))]) return false;
@@ -274,7 +275,7 @@ export class Mobs {
     this.list.push({
       kind, def, x: bx + 0.5, y: by, z: bz + 0.5, vy: 0, ground: false, hp: def.hp, cool: 2.5, hurt: 0, knock: 0, kx: 0, kz: 0,
       age: 0, walk: 0, gait: 0, fuse: 0, aware: false, unseen: 0, yaw: Math.random() * Math.PI * 2, roam: null, turnAt: 1 + Math.random() * 3,
-      side: Math.random() < 0.5 ? 1 : -1, ...m,
+      side: Math.random() < 0.5 ? 1 : -1, sideAt: 4 + Math.random() * 6, rise: 0, ...m,
     });
     return true;
   }
@@ -423,7 +424,10 @@ export class Mobs {
         if (def.ai === 'archer') {
           // come closer until it can shoot, back off when crowded, drift sideways in between
           const go = !sees || d > FAR ? 1 : d < NEAR ? -1 : 0;
-          if (Math.sin(m.age * 0.7) > 0.96) m.side = -m.side;
+          if (m.age > m.sideAt) {
+            m.side = -m.side; // the other way round the player for a while
+            m.sideAt = m.age + 6 + Math.random() * 6;
+          }
           vx = (dx / d) * def.speed * go + (go ? 0 : (-dz / d) * m.side * def.speed * 0.45);
           vz = (dz / d) * def.speed * go + (go ? 0 : (dx / d) * m.side * def.speed * 0.45);
         } else if (d > 1.0 && !m.lit) {
@@ -451,7 +455,9 @@ export class Mobs {
       if ((wall || edge) && !hunting) m.turnAt = 0; // ambling into something: enough of that way
       m.vy -= GRAVITY * dt;
       const ny = m.y + m.vy * dt;
-      if (this.free(m.x, ny, m.z, def)) {
+      // (the floor is met at the very soles: any lower and the feet would sink into it, be put
+      // back on top and sink again, and the creature would shake where it stands)
+      if (this.free(m.x, ny, m.z, def, 0)) {
         m.y = ny;
         m.ground = false;
       } else {
@@ -505,7 +511,9 @@ export class Mobs {
         m.arms[1].rotation.x = a;
       }
       // the drawn ground follows the measured height, the blocks under it are whole metres
-      m.mesh.position.set(m.x, m.y + (m.ground ? w.groundDelta(m.x, m.y, m.z) : 0), m.z);
+      // (taken up and given back gradually: leaving the ground and landing are not a jolt)
+      m.rise += ((m.ground ? w.groundDelta(m.x, m.y, m.z) : 0) - m.rise) * Math.min(1, dt * 12);
+      m.mesh.position.set(m.x, m.y + m.rise, m.z);
       // turns to the player it is after, or the way it is ambling
       if (face !== null) m.yaw += turnTo(m.yaw, face) * Math.min(1, dt * 9);
       m.mesh.rotation.y = m.yaw;
