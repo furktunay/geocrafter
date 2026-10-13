@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SEA_Y, MIN_EDIT_Y, FAR_TILE, FAR_RADIUS } from './config.js';
 import { Projection } from './geo.js';
-import { B, SOLID, TEX_TOP, MODEL, KIND, ITEM_OF, PLACE, MATE, SWING, SLAB_OF, SOUND, DX, DZ } from './blocks.js';
+import { B, SOLID, TEX_TOP, MODEL, KIND, FACING, ITEM_OF, PLACE, MATE, SWING, SLAB_OF, SOUND, DX, DZ } from './blocks.js';
 import { NETHER, NETHER_SPAWN, inNether, netherRegion, REGION, REGION_FOG } from './nether.js';
 import { createMaterials } from './materials.js';
 import { World } from './world.js';
@@ -200,7 +200,8 @@ function damage(n) {
 
 const fx = new Effects(scene, world, {
   onFuse: (seconds) => sfx.fuse(seconds),
-  onExplode: ({ x, y, z, blocks, power }) => {
+  onExplode: ({ x, y, z, blocks, power, cells }) => {
+    settle(cells);
     const d = camera.position.distanceTo(tmp.set(x, y, z));
     sfx.boom(d);
     shake = Math.max(shake, Math.min(1.6, 9 / (d + 2)));
@@ -1122,11 +1123,37 @@ function mateOf(x, y, z, id) {
   return m && world.getBlock(x + m[0], y + m[1], z + m[2]) === m[3] ? [x + m[0], y + m[1], z + m[2]] : null;
 }
 
+// What goes with the blocks that were just taken out of `cells` ([x, y, z, ...] each): whatever
+// stood on one (a torch, a carpet, a door) or hung on its side (a ladder, a torch on the wall),
+// and in turn whatever those were holding up.
+function settle(cells) {
+  const queue = cells.slice(), gone = new Map();
+  const drop = (x, y, z, id) => {
+    const k = `${x},${y},${z}`;
+    if (gone.has(k)) return;
+    gone.set(k, [x, y, z, B.AIR]);
+    queue.push([x, y, z]);
+    const mate = mateOf(x, y, z, id);
+    if (mate) drop(...mate, MATE[id][3]);
+  };
+  while (queue.length && gone.size < 4000) {
+    const [x, y, z] = queue.pop();
+    const up = world.getBlock(x, y + 1, z), kind = KIND[up];
+    if ((kind === 'torch' && FACING[up] < 0) || kind === 'carpet' || (kind === 'door' && MATE[up][1] === 1)) drop(x, y + 1, z, up);
+    for (let f = 0; f < 4; f++) {
+      const id = world.getBlock(x + DX[f], y, z + DZ[f]);
+      if ((KIND[id] === 'ladder' || KIND[id] === 'torch') && FACING[id] === (f + 2) % 4) drop(x + DX[f], y, z + DZ[f], id);
+    }
+  }
+  if (gone.size) world.setBlocks([...gone.values()]);
+}
+
 // Take a block out of the world, and with it the other half of whatever it is half of.
 function clearBlock(x, y, z, id) {
   const mate = mateOf(x, y, z, id);
-  if (mate) world.setBlocks([[x, y, z, B.AIR], [...mate, B.AIR]]);
-  else world.setBlock(x, y, z, B.AIR);
+  const cells = mate ? [[x, y, z, B.AIR], [...mate, B.AIR]] : [[x, y, z, B.AIR]];
+  world.setBlocks(cells);
+  settle(cells);
 }
 
 // ---- the bed. Nobody sleeps on a street: lying down sets it off like TNT, only harder.

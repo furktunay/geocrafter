@@ -230,6 +230,7 @@ const WORDS = {
   'Tools and combat': ['Aletler ve savaş', 'Herramientas y combate'],
   'Spawn eggs': ['Çağırma yumurtaları', 'Huevos generadores'],
   'Crafting': ['Üretim', 'Fabricación'],
+  'Log → planks · sand + gravel → TNT · steel + gravel → flint and steel': ['Kütük → tahta · kum + çakıl → TNT · çelik + çakıl → çakmak', 'Tronco → tablones · arena + grava → TNT · acero + grava → mechero'],
 
   // ---- things
   'Pickaxe': ['Kazma', 'Pico'], 'Sword': ['Kılıç', 'Espada'], 'Flint and steel': ['Çakmak', 'Mechero'], 'Bread': ['Ekmek', 'Pan'],

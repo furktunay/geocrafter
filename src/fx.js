@@ -116,7 +116,7 @@ export class Effects {
     for (const [x, y, z, id] of samples) this.burst(x + 0.5, y + 0.5, z + 0.5, this.colorOf(id), 3, 13, 0.24, 1.6);
     this.burst(cx, cy, cz, [1, 0.72, 0.25], 40, 16, 0.14, 0.5);
     this.burst(cx, cy, cz, [0.32, 0.32, 0.33], 46, 4.5, 0.55, 2.6, 2.4); // smoke
-    if (this.hooks.onExplode) this.hooks.onExplode({ x: cx, y: cy, z: cz, blocks: edits.length, power });
+    if (this.hooks.onExplode) this.hooks.onExplode({ x: cx, y: cy, z: cz, blocks: edits.length, power, cells: edits });
   }
 
   flashMesh(x, y, z) {

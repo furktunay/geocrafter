@@ -757,10 +757,20 @@ body.pack-inventory .bag .mc-slot:hover {
 
 @keyframes splash {
   from {
-    transform: translateX(22%) rotate(-18deg) scale(1);
+    transform: translateX(var(--splash-x, 22%)) rotate(-18deg) scale(1);
   }
   to {
-    transform: translateX(22%) rotate(-18deg) scale(1.07);
+    transform: translateX(var(--splash-x, 22%)) rotate(-18deg) scale(1.07);
+  }
+}
+
+/* a narrow window has no room beside the logo: the splash stays within it */
+@media (max-width: 760px) {
+  #splash {
+    --splash-x: 0%;
+    right: 0;
+    bottom: calc(-4 * var(--u));
+    font-size: calc(7 * var(--u));
   }
 }
 
@@ -1045,7 +1055,7 @@ kbd {
   color: #9fc4ff;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 420px) {
   #notice {
     display: none;
   }
