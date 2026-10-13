@@ -1,7 +1,7 @@
 {
-  "name": "street-craft",
+  "name": "geocrafter",
   "version": "1.0.0",
-  "description": "A block game played inside real 360° street photos",
+  "description": "A Minecraft-style block game played inside Google Street View and real 360° street photos",
   "private": true,
   "license": "MIT",
   "type": "module",

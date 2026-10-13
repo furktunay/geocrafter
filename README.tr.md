@@ -1,9 +1,12 @@
-# Street Craft
+# GeoCrafter: gerçek sokak fotoğraflarının içinde Minecraft tarzı blok oyunu
 
-Gerçek 360° sokak fotoğraflarının içinde oynanan bir blok oyunu. Sokak seviyesinde çekilmiş bir
-panoramanın içinde durursun, fotoğraftan fotoğrafa adım atarsın, fotoğrafın içine blok koyarsın,
-gerçek yolu kazar, gerçek binaları patlatırsın. Fotoğrafın altında harita verisinden kurulmuş bir
-blok dünyası vardır; kırdığın her yerde o görünür.
+GeoCrafter, Google Street View'un ve başka gerçek 360° sokak fotoğraflarının içinde oynanan bir blok
+oyunudur. Sokak seviyesinde çekilmiş bir panoramanın içinde durursun, fotoğraftan fotoğrafa adım
+atarsın, fotoğrafın içine blok koyarsın, gerçek yolu kazar, gerçek binaları patlatırsın. Fotoğrafın
+altında harita verisinden kurulmuş bir blok dünyası vardır; kırdığın her yerde o görünür.
+
+Yapan: [furk.ai](https://www.instagram.com/furk.ai/). Eski adı **Street Craft** (StreetCraft) idi;
+ilk videolardaki logoda o yazar.
 
 Deneysel bir projedir. **Resmî bir Minecraft ürünü değildir; Mojang ya da Microsoft tarafından
 onaylanmamıştır ve onlarla bağı yoktur.** Google ile de bağı yoktur. Bu depodaki bütün çizimleri ve

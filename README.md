@@ -1,9 +1,12 @@
-# Street Craft
+# GeoCrafter: a Minecraft-style block game inside real street photos
 
-A block game played inside real 360° street photos. You stand in a street-level panorama, step from
-photo to photo, put blocks into the picture, dig up the real road and blow up the real buildings.
-Underneath the photo there is a block world built from map data, and it shows wherever you break
-through.
+GeoCrafter is a block game you play inside Google Street View and other real 360° street photos. You
+stand in a street-level panorama, step from photo to photo, put blocks into the picture, dig up the
+real road and blow up the real buildings. Underneath the photo there is a block world built from map
+data, and it shows wherever you break through.
+
+Made by [furk.ai](https://www.instagram.com/furk.ai/). Formerly called **Street Craft** (StreetCraft),
+the name on the logo in the first videos.
 
 An experimental project. **Not an official Minecraft product. Not approved by or associated with
 Mojang or Microsoft.** Not affiliated with Google either. Every drawing and sound in this repository

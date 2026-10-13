@@ -47,7 +47,7 @@ const wanted = new Set();
   } else if (v && typeof v === 'object') Object.values(v).forEach(collect);
 })(pack);
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'street-craft-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'geocrafter-'));
 const inside = [...wanted].map((f) => `assets/minecraft/textures/${f}`);
 try {
   // unzip where there is one; bsdtar (macOS, Windows) also reads zip archives

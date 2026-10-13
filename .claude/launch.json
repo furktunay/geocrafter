@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "street-craft",
+      "name": "geocrafter",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -15,7 +15,7 @@
       "port": 5173
     },
     {
-      "name": "street-craft-5174",
+      "name": "geocrafter-5174",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",

@@ -717,7 +717,7 @@ body.pack-inventory .bag .mc-slot:hover {
 
 #logo {
   position: relative;
-  width: min(calc(290 * var(--u)), 94vw);
+  width: min(calc(264 * var(--u)), 94vw);
   margin-bottom: calc(18 * var(--u));
   text-align: center;
 }

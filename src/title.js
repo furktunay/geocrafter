@@ -1,17 +1,18 @@
 // The title screen: the stone logo (drawn here, like every other picture in the game), the
 // splash line beside it, and switching between the menu's screens.
 
-// 5 x 7 letters, one string per row.
 import { tx } from './i18n.js';
 
+// Letters seven rows high, one string per row, each as wide as it needs to be.
 const GLYPHS = {
-  S: ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'],
-  T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
-  R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
+  G: ['.####', '#....', '#....', '#.###', '#...#', '#...#', '.###.'],
   E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+  O: ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
   C: ['.####', '#....', '#....', '#....', '#....', '#....', '.####'],
+  R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
   A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
   F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
+  T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
 };
 const CELL = 4; // texels per letter cell
 const DEPTH = 5; // texels of dark stone under each letter, the logo's thickness
@@ -24,17 +25,23 @@ const noise = (x, y) => ((Math.imul(x, 0x9e3779b1) ^ Math.imul(y, 0x85ebca6b) ^ 
 // Letters cut from cobbled stone, lit from above, standing on a darker side face. Every stroke
 // is two cells thick (the thin letters above, smeared one cell right and one down): a heavy,
 // blocky word, written as one.
-export function drawLogo(canvas, text = 'STREETCRAFT') {
-  const GW = 6, GH = 8, STEP = GW + 1; // a bold letter's cells, and the pitch from one to the next
-  const cols = text.length * STEP - 1;
+export function drawLogo(canvas, text = 'GEOCRAFTER') {
+  const GH = 8; // a bold letter's rows: the seven above and the smear
+  // where each letter starts: a bold letter is one cell wider than written, and one cell apart
+  const starts = [];
+  let cols = -1;
+  for (const ch of text) {
+    starts.push(cols + 1);
+    cols += (GLYPHS[ch] ? GLYPHS[ch][0].length : 2) + 2;
+  }
   const cells = new Uint8Array(cols * GH);
   [...text].forEach((ch, n) => {
     const g = GLYPHS[ch];
     if (!g) return;
     for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 5; c++) {
+      for (let c = 0; c < g[r].length; c++) {
         if (g[r][c] !== '#') continue;
-        for (const [dc, dr] of [[0, 0], [1, 0], [0, 1], [1, 1]]) cells[(r + dr) * cols + n * STEP + c + dc] = 1;
+        for (const [dc, dr] of [[0, 0], [1, 0], [0, 1], [1, 1]]) cells[(r + dr) * cols + starts[n] + c + dc] = 1;
       }
     }
   });
