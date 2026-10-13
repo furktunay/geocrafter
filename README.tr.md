@@ -10,10 +10,6 @@ Craft** (StreetCraft) idi; ilk videolardaki logoda o yazar.
 **Resmî bir Minecraft ürünü değildir; Mojang ya da Microsoft tarafından onaylanmamıştır ve onlarla
 bağı yoktur.** Google ve GeoGuessr ile de bağı yoktur.
 
-`public/textures` ve `public/sounds` klasörlerindeki dokular ve sesler Minecraft'tan gelir ve
-Mojang'a aittir. Burada yalnızca kişisel kullanım için dururlar; paylaşılmamaları gerekir. Onlar
-olmadan oyun kendi çizimlerini ve seslerini kullanır.
-
 English: [README.md](README.md)
 
 ## Çalıştırma
@@ -67,5 +63,4 @@ Bilmen gerekenler:
 - Street View: © Google; oyuncunun kendi anahtarıyla Map Tiles API üzerinden gösterilir
 - Menü yazı tipi: [Jersey 15](https://fonts.google.com/specimen/Jersey+15), SIL Open Font License
 
-Kod [MIT lisansı](LICENSE) altındadır. `public/textures` ve `public/sounds` içindeki Minecraft
-dosyaları Mojang'a aittir ve bu lisansın kapsamında değildir.
+Kod [MIT lisansı](LICENSE) altındadır.

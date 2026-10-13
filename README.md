@@ -10,10 +10,6 @@ An experimental project, made by [furk.ai](https://www.instagram.com/furk.ai/). 
 **Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.** Not
 affiliated with Google or GeoGuessr either.
 
-The textures and sounds in `public/textures` and `public/sounds` come from Minecraft and belong to
-Mojang. They are here for private use only and must not be shared. Without them the game uses its
-own drawings and sounds.
-
 Türkçe: [README.tr.md](README.tr.md)
 
 ## Run it
@@ -66,5 +62,4 @@ Good to know:
 - Street View: © Google, shown through the Map Tiles API with the player's own key
 - Menu typeface: [Jersey 15](https://fonts.google.com/specimen/Jersey+15), SIL Open Font License
 
-The code is under the [MIT licence](LICENSE). The Minecraft files in `public/textures` and
-`public/sounds` are Mojang's and are not covered by it.
+The code is under the [MIT licence](LICENSE).
