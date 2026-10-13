@@ -73,13 +73,12 @@ yoksa) oyun başlamaz; bunu söyler ve seni konum listesine geri gönderir.
 | --- | --- |
 | `W` | Baktığın okun gösterdiği fotoğrafa adım at; basılı tutunca devam eder |
 | `A` `S` `D` | Sola, geriye, sağa adım at |
+| `Boşluk` | Zıpla |
 | Sol tık / sağ tık | Kır, vur / koy, kullan |
 | `1`–`9`, tekerlek | Alt bardan eşya seç |
 | Orta tık | Baktığın bloğu ele al |
 | `E` | Envanter (sekmeli yaratıcı katalog) ve 2×2 üretim |
-| `Tab` | Fotoğraf modu ile serbest gezinti (yürü, zıpla) arasında geç |
-| `F`, çift `Boşluk` | Serbest gezintide uç |
-| `G` | En yakın fotoğrafa dön |
+| `G` | Nether'da: sokağa geri dön |
 | `V` | Baktığın arabaya katı bir gövde ver (tekrar: geri al) |
 | `R` iki kez | Bu haritayı sıfırla |
 | `P` | Fotoğrafı aç/kapat (alttaki blok dünyası) |
@@ -98,8 +97,9 @@ Tarayıcı imleci kilitleyemezse (gömülü önizlemeler) oyun sürükle-bak mod
   saklayan sandık. Basamak senden uzağa doğru yükselir, sandık sana bakar, yarım bloğun üstüne
   ikincisini koyunca tam blok olur.
 - **Yapılacak şeyler:** çakmakla TNT, yay, kazma ve kılıç, acıkınca ekmek, çağırma yumurtaları
-  (iskelet okçu, creeper, zombi, zombileşmiş piglin), her konumun altındaki Nether'a açılan obsidyen
-  portal ve kimsenin uyumaması gereken bir yerde yatakların yaptığını yapan bir yatak.
+  (iskelet okçu, creeper, zombi, zombileşmiş piglin), sokağa yanan bir obsidyen portal diken portal
+  yumurtası, o portalın götürdüğü, her konumun altındaki Nether (orada yürünür) ve kimsenin
+  uyumaması gereken bir yerde yatakların yaptığını yapan bir yatak.
 - **Üç dil:** İngilizce, Türkçe, İspanyolca (menünün sağ üstünde).
 
 Blok değişiklikleri, envanter, sandıklar ve ayarlar tarayıcıda, konum başına saklanır.

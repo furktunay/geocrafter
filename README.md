@@ -73,13 +73,12 @@ the game says so and sends you back to the list instead of starting.
 | --- | --- |
 | `W` | Step to the photo the arrow you face points at; hold to keep going |
 | `A` `S` `D` | Step left, back, right |
+| `Space` | Jump |
 | Left click / right click | Break or hit / place or use |
 | `1`–`9`, wheel | Pick an item from the hotbar |
 | Middle click | Pick the block you point at |
 | `E` | Inventory (creative catalogue with tabs) and 2×2 crafting |
-| `Tab` | Switch between photo mode and free roam (walk, jump) |
-| `F`, double `Space` | Fly, in free roam |
-| `G` | Back to the nearest photo |
+| `G` | In the Nether: back up to the street |
 | `V` | Give the car you point at a solid body (again: undo) |
 | `R` twice | Reset this map |
 | `P` | Photo on/off (shows the block world underneath) |
@@ -98,8 +97,9 @@ Where the browser cannot lock the pointer (embedded previews), the game falls ba
   things. Stairs climb away from you, a chest faces you, a second slab on the first makes the whole
   block again.
 - **Things to do:** TNT with flint and steel, a bow, a pickaxe and a sword, bread when you are hungry,
-  spawn eggs (skeleton archers, creepers, zombies, zombified piglins), an obsidian portal to a Nether
-  under every place, and a bed that does what beds do where nobody is supposed to sleep.
+  spawn eggs (skeleton archers, creepers, zombies, zombified piglins), a portal egg that stands a lit
+  obsidian portal on the street, the Nether under every place that it leads to (down there you
+  walk), and a bed that does what beds do where nobody is supposed to sleep.
 - **Three languages:** English, Turkish and Spanish (top right of the menu).
 
 Block changes, the inventory, chests and settings are saved in the browser, per place.

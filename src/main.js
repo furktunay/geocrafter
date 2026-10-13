@@ -121,14 +121,20 @@ const player = new Player(world);
 const sky = new Sky(scene, materials);
 const hand = new Hand();
 
-// Saved inventories from before the items changed keep their storage and get the new hotbar
-// (the bow and the skeleton egg did not exist then).
-const SLOTS_VERSION = 2;
+// Saved inventories from before the items changed keep what is in them and get what is new:
+// the hotbar of its day (the bow and the eggs did not exist at first); later the creeper's egg
+// where the skeleton's used to be handed out, and the portal egg in the storage's first free slot.
+const SLOTS_VERSION = 3;
 function loadSlots() {
   try {
     const a = JSON.parse(localStorage.getItem(SLOTS_KEY));
     if (Array.isArray(a) && a.length === 36 && a.every((v) => v === 0 || itemName(v))) {
-      if (+localStorage.getItem(`${SLOTS_KEY}:version`) < SLOTS_VERSION) a.splice(0, 9, ...DEFAULT_SLOTS.slice(0, 9));
+      const saved = +localStorage.getItem(`${SLOTS_KEY}:version`);
+      if (saved < 2) a.splice(0, 9, ...DEFAULT_SLOTS.slice(0, 9));
+      if (saved < 3) {
+        if (a[5] === I.EGG) a[5] = I.EGG_CREEPER;
+        if (!a.includes(I.EGG_PORTAL) && a.includes(0, 9)) a[a.indexOf(0, 9)] = I.EGG_PORTAL;
+      }
       return a;
     }
   } catch (e) {
@@ -263,7 +269,7 @@ let spawned = false;
 let arrived = false; // first panorama chosen (or none exists here)
 let stranded = false; // no street photo to stand in here: nothing to play
 let faced = false; // turned to look down the street once
-let roam = false; // off the photos: walking or flying freely (the photo skin warps out there)
+let roam = false; // off the photos, on foot: down in the Nether (on the street one stands in a photo)
 let debug = false;
 let photoOn = true;
 let calibrating = false;
@@ -272,7 +278,7 @@ let elevOffset = 0;
 let radius = +localStorage.getItem('geocrafter:radius') || (survey ? 9 : 12); // laser-scan tiles are heavy
 world.setRadius(radius);
 const keys = new Set();
-const view = new THREE.Vector3();
+const stand = new THREE.Vector3(); // where the player stands: the camera, less what a jump has it lifted
 const locked = () => document.pointerLockElement === canvas;
 // playing: the game has the input. Normally that means the pointer is locked; where the browser
 // refuses the lock (embedded views), `dragLook` takes over: drag to look, click to act, Esc for menu.
@@ -317,8 +323,8 @@ function findSpawn() {
   return best || [0, 0];
 }
 
-// The photo skin belongs to the spot it was taken from: flying away from it, it thins out and
-// the block world shows; coming back down returns the street photo.
+// The photo skin belongs to the spot it was taken from: a long way from it, it thins out and
+// the block world shows.
 function setPhoto() {
   let k = calibrating ? 0.55 : photoOn ? 1 : 0;
   if (inNether(camera.position.x, camera.position.y, camera.position.z)) k = 0; // no street down there
@@ -364,7 +370,7 @@ function buildMenu() {
   $('promo').addEventListener('click', openGoogleOptions);
   buildPlaces();
   $('custom').addEventListener('submit', addPlace);
-  // how fast the player gets around: the steps between photos, and flying
+  // how fast the player gets around: the steps between photos, and walking in the Nether
   const pace = $('pace');
   const showPace = () => {
     setPace(+pace.value);
@@ -707,7 +713,6 @@ document.addEventListener('mousemove', (e) => {
 function travel(node) {
   if (!node) return;
   roam = false;
-  player.flying = false;
   panos.goTo(node, true);
 }
 
@@ -739,7 +744,7 @@ function calibrate(code, big) {
   return true;
 }
 
-let lastSpace = 0, lastW = 0;
+let lastW = 0;
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || dead) return;
   if (ui.inventoryOpen) {
@@ -755,26 +760,14 @@ document.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keys.add(e.code);
   const now = performance.now();
+  // (Space needs nothing here: held, it jumps; see frame() and Player)
   if (!roam && e.code in HOPS) return hop(HOPS[e.code]);
-  if (e.code === 'Space' && roam) {
-    if (now - lastSpace < 280) {
-      player.flying = !player.flying;
-      player.vy = 0;
-      ui.toast(player.flying ? 'Flying' : 'Flying off');
-      lastSpace = 0;
-    } else lastSpace = now;
-  } else if (e.code === 'KeyW') {
+  if (e.code === 'KeyW') {
     if (now - lastW < 280) player.sprint = true;
     lastW = now;
-  } else if (e.code === 'Tab') {
-    if (!roam) {
-      // off the photos: on foot from where this one was taken
-      roam = true;
-      panos.unlock();
-      player.flying = false;
-      player.vy = 0;
-      ui.toast('Free roam · W A S D walk, Space jump · double Space or F: fly · Tab: photo mode', 6000);
-    } else if (inNether(player.x, player.y, player.z)) {
+  } else if (e.code === 'KeyG' && roam) {
+    // off the photos: straight back to the street
+    if (inNether(player.x, player.y, player.z)) {
       warp = 1; // no waiting this way out, but the same letting go on arrival
       portalAt = clock;
       sfx.travel();
@@ -784,23 +777,6 @@ document.addEventListener('keydown', (e) => {
       if (n) travel(n);
       else ui.toast('No 360° street photo nearby');
     }
-  } else if (e.code === 'KeyF') {
-    if (!roam) {
-      // let go of the photo and take off from where it was taken
-      roam = true;
-      panos.unlock();
-      player.flying = true;
-      player.vy = 0;
-      ui.toast('Free flight · the picture warps away from the photo · G: back to the photo', 5000);
-    } else {
-      player.flying = !player.flying;
-      player.vy = 0;
-      ui.toast(player.flying ? 'Flying' : 'Flying off');
-    }
-  } else if (e.code === 'KeyG') {
-    const n = panos.nearest(player.x, player.z, 400);
-    if (n) travel(n);
-    else ui.toast('No 360° street photo nearby');
   } else if (e.code === 'KeyV') {
     // a car at the crosshair gets its body, whatever is in the hand
     const t = aim();
@@ -850,10 +826,11 @@ function aim(maxDist) {
   return world.raycast(camera.position.x, camera.position.y, camera.position.z, dx, dy, dz, maxDist ?? (roam ? REACH_WALK : REACH_LOCKED));
 }
 
-// A block placed here would box in the player or the camera.
+// A block placed here would box in the player or the camera (in the middle of a jump: anywhere
+// between where they stand and where it has them).
 function inTheWay(x, y, z) {
   const c = camera.position;
-  return player.overlapsBlock(x, y, z) || (Math.abs(x + 0.5 - c.x) < 0.85 && Math.abs(z + 0.5 - c.z) < 0.85 && c.y > y - 0.35 && c.y < y + 1.35);
+  return player.overlapsBlock(x, y, z) || (Math.abs(x + 0.5 - c.x) < 0.85 && Math.abs(z + 0.5 - c.z) < 0.85 && c.y > y - 0.35 && c.y - player.lift < y + 1.35);
 }
 
 // The bow is drawn while the button is held and loosed when it is let go: the longer the draw
@@ -880,6 +857,9 @@ const soundOf = (id) => SOUND[id];
 
 // ---- the portal. An upright frame of obsidian, its opening at least two blocks wide and three
 // high, lit with the flint: the opening fills with the portal.
+// (on the street nobody walks: a portal there is gone through with a click)
+const portalHint = () => (roam ? 'Portal lit · right-click it, or step in and wait' : 'Portal lit · right-click it to go through');
+
 function lightPortal(t) {
   if (t.id !== B.OBSIDIAN) return false;
   const x = t.x + t.nx, y = t.y + t.ny, z = t.z + t.nz;
@@ -907,7 +887,7 @@ function lightPortal(t) {
     if (wide < 2 || high < 3 || cells.length !== wide * high) continue;
     world.setBlocks(cells.map((c) => [...c, B.PORTAL]));
     sfx.level();
-    ui.toast('Portal lit · right-click it, or step in and wait', 4000);
+    ui.toast(portalHint(), 4000);
     return true;
   }
   ui.toast('A portal needs an upright obsidian frame: at least 2 blocks wide and 3 high inside', 4500);
@@ -925,6 +905,32 @@ function closePortal(x, y, z) {
     stack.push([cx + 1, cy, cz], [cx - 1, cy, cz], [cx, cy + 1, cz], [cx, cy - 1, cz], [cx, cy, cz + 1], [cx, cy, cz - 1]);
   }
   if (gone.size) world.setBlocks([...gone.values()]);
+}
+
+// The portal egg: a whole portal at once, lit, in the frame of four by five the Nether's own has.
+// It stands on the ground where the egg is pointed, across the way the player looks.
+function openPortal(t, dir) {
+  hand.swing();
+  const x = t.x + t.nx, z = t.z + t.nz;
+  let y = t.y + t.ny;
+  // pointed at a wall or a ceiling: down to the floor in front of it
+  for (let drop = 0; drop < 12 && world.getBlock(x, y - 1, z) === B.AIR; drop++) y--;
+  // the opening's middle comes as near as it can to the spot pointed at
+  const alongZ = Math.abs(dir[0]) > Math.abs(dir[2]);
+  const c = camera.position;
+  const from = Math.round(alongZ ? c.z + dir[2] * t.t : c.x + dir[0] * t.t) - 2;
+  // on a kerb or a slope the frame stands on the highest ground under it
+  for (let up = 0; up < 3; up++, y++) {
+    const cells = [];
+    for (let i = 0; i < 4; i++) {
+      for (let j = 0; j < 5; j++) cells.push([alongZ ? x : from + i, y + j, alongZ ? from + i : z, i % 3 && j % 4 ? B.PORTAL : B.OBSIDIAN]);
+    }
+    if (!cells.every(([cx, cy, cz]) => cy >= MIN_EDIT_Y && world.isLoaded(cx, cz) && vacant(cx, cy, cz) && !inTheWay(cx, cy, cz))) continue;
+    world.setBlocks(cells);
+    sfx.level();
+    return ui.toast(portalHint(), 4000);
+  }
+  ui.toast('No room for a portal here');
 }
 
 // ---- the Nether: a cavern under every place (nether.js). A portal takes the player down to
@@ -957,13 +963,12 @@ function throughPortal() {
   netherHome = [player.x, player.z];
   roam = true;
   panos.unlock();
-  player.flying = false;
   [player.x, player.y, player.z] = NETHER_SPAWN;
-  player.vx = player.vy = player.vz = 0;
+  player.vx = player.vy = player.vz = player.lift = 0;
   player.yaw = Math.PI; // the portal back is behind: look out over the cavern
   player.pitch = 0;
   netherCheck = true;
-  ui.toast('Nether · W A S D walk, Space jump · portal or Tab: go back', 6000);
+  ui.toast('Nether · W A S D walk, Space jump · portal or G: go back', 6000);
 }
 
 // The view swims: stretched along a line that keeps turning, the more the further the portal
@@ -1338,6 +1343,7 @@ function secondary() {
   }
   const x = t.x + t.nx, y = t.y + t.ny, z = t.z + t.nz;
   if (item === I.CAR) return carBody(t, dir);
+  if (item === I.EGG_PORTAL) return openPortal(t, dir);
   if (EGGS[item]) {
     hand.swing();
     if (mobs.spawn(EGGS[item], x, y, z)) sfx.pop();
@@ -1440,9 +1446,9 @@ function hud() {
   const n = panos.current;
   if (n) {
     html += `${tx('Photo: {0} · {1} · {2}', n.author || tx('anonymous'), n.date, n.license || (n.exact ? tx('open data') : n.provider + ' (CC BY-SA 4.0)'))}\n`;
-    if (inNether(player.x, player.y, player.z)) html += tx('Nether ({0}) · portal or Tab: go back', tx(REGION_NAMES[netherRegion(Math.floor(player.x), Math.floor(player.z))]));
-    else if (roam) html += tx(`Free roam: ${player.flying ? 'flying' : 'walking'} · double Space: fly/land · Tab: photo mode`);
-    else html += tx(panos.pending ? 'Loading the next photo…' : 'W A S D: step along the arrows · Tab: free roam');
+    if (inNether(player.x, player.y, player.z)) html += tx('Nether ({0}) · portal or G: go back', tx(REGION_NAMES[netherRegion(Math.floor(player.x), Math.floor(player.z))]));
+    else if (roam) html += tx('Off the photos · G: back to the nearest one');
+    else html += tx(panos.pending ? 'Loading the next photo…' : 'W A S D: step along the arrows · Space: jump');
   } else if (panos.searching() || panos.pending) html += tx('Looking for 360° street photos…');
   else html += tx('No 360° street photos around here — block world');
   const pending = world.inflight.size + world.farInflight.size;
@@ -1471,7 +1477,7 @@ function frame(now) {
   // voxel chunks render inside the ring, the coarse skyline outside; shrink at once, grow smoothly
   const loaded = world.loadedRadius();
   clip = loaded < clip ? loaded : Math.min(loaded, clip + dt * 160);
-  panos.update(dt, camera.position, player, clip, spawned && arrived && roam && !inNether(player.x, player.y, player.z));
+  panos.update(dt, stand, player, clip, spawned && arrived && roam && !inNether(player.x, player.y, player.z));
 
   if (!spawned) {
     const p = world.progress(3);
@@ -1533,19 +1539,21 @@ function frame(now) {
   // the photo itself; without one it is the usual 1.62 m
   const eye = photoOn && panos.current ? panos.seqCalib(panos.current).height : EYE;
   player.eye += (eye - player.eye) * Math.min(1, dt * 6);
-  const vp = roam ? null : panos.viewPos(view);
-  if (vp) {
-    // standing in (or gliding to) a panorama: the camera sits where the photo was taken
-    player.x = vp.x;
-    player.z = vp.z;
-    player.y = vp.y - player.eye;
-    player.vx = player.vy = player.vz = 0;
+  if (!roam && panos.viewPos(stand)) {
+    // standing in (or gliding to) a panorama: the camera sits where the photo was taken, but
+    // for a jump, which takes it straight up from there and back
+    player.x = stand.x;
+    player.z = stand.z;
+    player.y = stand.y - player.eye;
+    player.vx = player.vz = 0;
     player.headInWater = false;
-    camera.position.copy(vp);
+    player.y += player.leap(dt, keys.has('Space'));
+    camera.position.set(stand.x, player.eyeY, stand.z);
   } else {
     if (spawned && playing && roam && !dead && !ui.inventoryOpen) player.update(dt, keys);
     // the drawn ground follows the measured height, the blocks under it are whole metres
     camera.position.set(player.x, player.eyeY + world.groundDelta(player.x, player.y, player.z), player.z);
+    stand.copy(camera.position);
   }
   shake *= Math.exp(-dt * 5);
   const jolt = () => (Math.random() - 0.5) * shake * 0.09;

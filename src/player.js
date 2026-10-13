@@ -19,8 +19,8 @@ export class Player {
     this.vz = 0;
     this.yaw = 0;
     this.pitch = 0;
-    this.flying = false;
     this.eye = EYE; // eye height above the feet (raised to the camera height inside street photos)
+    this.lift = 0; // how far a jump on the spot has the feet off the ground (see leap)
     this.onGround = false;
     this.inWater = false;
     this.headInWater = false;
@@ -76,9 +76,17 @@ export class Player {
     return hit;
   }
 
-  // Would the player's box overlap this block cell?
+  // Would the player's box overlap this block cell? (Jumping on the spot, the box reaches from
+  // where they stand to where the jump has them.)
   overlapsBlock(bx, by, bz) {
-    return bx + 1 > this.x - W && bx < this.x + W && by + 1 > this.y && by < this.y + HGT && bz + 1 > this.z - W && bz < this.z + W;
+    return bx + 1 > this.x - W && bx < this.x + W && by + 1 > this.y - this.lift && by < this.y + HGT && bz + 1 > this.z - W && bz < this.z + W;
+  }
+
+  // Is this point inside something solid (of a shaped block: inside one of its boxes)?
+  solidAt(x, y, z) {
+    const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z), id = this.world.getBlock(bx, by, bz);
+    if (!SOLID[id] || MODEL[id] === null) return !!SOLID[id];
+    return this.world.boxesAt(bx, by, bz, id).some((b) => x >= bx + b[0] && x <= bx + b[3] && y >= by + b[1] && y <= by + b[4] && z >= bz + b[2] && z <= bz + b[5]);
   }
 
   // Put the player on the ground (or roof) at a column.
@@ -87,6 +95,26 @@ export class Player {
     this.z = z + 0.5;
     this.y = this.world.topY(x, z) + 1;
     this.vx = this.vy = this.vz = 0;
+    this.lift = 0;
+  }
+
+  // Standing in a street photo the player is put where it was taken (see main.js) and cannot
+  // walk; what is left of moving about is a jump on the spot. `jump`: the key is held, `this.y`:
+  // the ground stood on. -> how far the feet are off it now (kept in this.lift).
+  leap(dt, jump) {
+    if (this.lift > 0) this.vy -= GRAVITY * dt;
+    else if (jump) this.vy = JUMP;
+    else {
+      this.vy = 0;
+      return 0;
+    }
+    const lift = this.lift + this.vy * dt, head = this.y + this.eye + 0.25;
+    if (this.vy > 0 && this.solidAt(this.x, head + lift, this.z)) {
+      // under a ceiling the head goes up to it and no higher
+      this.lift = Math.max(this.lift, Math.floor(head + lift) - head - EPS);
+      this.vy = 0;
+    } else this.lift = Math.max(0, lift);
+    return this.lift;
   }
 
   update(dt, keys) {
@@ -101,7 +129,7 @@ export class Player {
     const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
     const s = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
     if (f <= 0) this.sprint = false;
-    const sprint = this.sprint || keys.has('ControlLeft') || keys.has('AltLeft') || (!this.flying && keys.has('ShiftLeft'));
+    const sprint = this.sprint || keys.has('ControlLeft') || keys.has('AltLeft') || keys.has('ShiftLeft');
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     let mx = -sin * f + cos * s, mz = -cos * f - sin * s;
     const ml = Math.hypot(mx, mz);
@@ -109,15 +137,10 @@ export class Player {
       mx /= ml;
       mz /= ml;
     }
-    const up = keys.has('Space') ? 1 : 0;
-    const down = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 1 : 0;
+    const up = keys.has('Space');
 
     let speed, accel;
-    if (this.flying) {
-      speed = (sprint ? 42 : 13) * this.pace;
-      accel = 9;
-      this.vy += ((up - down) * speed * 0.75 - this.vy) * Math.min(1, accel * dt);
-    } else if (this.inWater) {
+    if (this.inWater) {
       speed = sprint ? 4.5 : 3;
       accel = 6;
       this.vy -= 7 * dt;
@@ -134,13 +157,13 @@ export class Player {
     this.vx += (mx * speed - this.vx) * k;
     this.vz += (mz * speed - this.vz) * k;
 
-    // sub-step so fast flight cannot tunnel through a wall
+    // sub-step so a long fall cannot tunnel through a floor
     const dist = Math.max(Math.abs(this.vx), Math.abs(this.vy), Math.abs(this.vz)) * dt;
     const steps = Math.max(1, Math.ceil(dist / 0.4));
     const h = dt / steps;
     let blocked = false;
     // on the ground a low step is simply walked up: the feet are lifted over it and come down on it
-    const grounded = this.onGround && !this.flying && !this.inWater;
+    const grounded = this.onGround && !this.inWater;
     const tops = [0];
     this.onGround = false;
     for (let i = 0; i < steps; i++) {
@@ -178,7 +201,6 @@ export class Player {
           const snapped = tops[0] > ny && tops[0] <= this.y + EPS ? tops[0] : Math.floor(ny) + 1;
           if (!this.collides(this.x, snapped, this.z)) this.y = snapped;
           this.onGround = true;
-          if (this.flying && down) this.flying = false; // land
         } else {
           const snapped = Math.floor(ny + HGT - EPS) - HGT;
           if (!this.collides(this.x, snapped, this.z)) this.y = snapped;
@@ -188,7 +210,7 @@ export class Player {
     }
 
     // auto-jump: hop up one-block steps (terrain is a staircase at 1 m resolution)
-    if (blocked && this.onGround && !this.flying && ml > 0) {
+    if (blocked && this.onGround && ml > 0) {
       const ax = Math.floor(this.x + mx * (W + 0.25)), az = Math.floor(this.z + mz * (W + 0.25));
       const fy = Math.floor(this.y + 0.01);
       if (SOLID[w.getBlock(ax, fy, az)] && !SOLID[w.getBlock(ax, fy + 1, az)] && !SOLID[w.getBlock(ax, fy + 2, az)]) {

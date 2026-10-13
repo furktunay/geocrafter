@@ -3,11 +3,11 @@ import { tx } from './i18n.js';
 import { B, NAMES, PALETTE, TEX_DIR, MODEL, PLACE, COLOURS, CARPET } from './blocks.js';
 import { buildTextures, TEX_SIZE, T } from './textures.js';
 
-export const I = { PICKAXE: 300, SWORD: 301, FLINT: 302, BREAD: 303, EGG: 304, BOW: 305, DIAMOND: 306, EGG_CREEPER: 307, EGG_ZOMBIE: 308, EGG_PIGLIN: 309, CAR: 310 };
+export const I = { PICKAXE: 300, SWORD: 301, FLINT: 302, BREAD: 303, EGG: 304, BOW: 305, DIAMOND: 306, EGG_CREEPER: 307, EGG_ZOMBIE: 308, EGG_PIGLIN: 309, CAR: 310, EGG_PORTAL: 311 };
 const TOOL_NAMES = {
   [I.PICKAXE]: 'Pickaxe', [I.SWORD]: 'Sword', [I.FLINT]: 'Flint and steel', [I.BREAD]: 'Bread', [I.EGG]: 'Skeleton egg', [I.BOW]: 'Bow',
   [I.DIAMOND]: 'Diamond', [I.EGG_CREEPER]: 'Creeper egg', [I.EGG_ZOMBIE]: 'Zombie egg', [I.EGG_PIGLIN]: 'Zombified piglin egg',
-  [I.CAR]: 'Car body (4×2×2)',
+  [I.CAR]: 'Car body (4×2×2)', [I.EGG_PORTAL]: 'Portal egg',
 };
 // which creature climbs out of which egg (see mobs.js)
 export const EGGS = { [I.EGG]: 'skeleton', [I.EGG_CREEPER]: 'creeper', [I.EGG_ZOMBIE]: 'zombie', [I.EGG_PIGLIN]: 'piglin' };
@@ -19,7 +19,7 @@ export const isBlock = (id) => id > 0 && id < 256;
 export const itemName = (id) => (isBlock(id) ? NAMES[id] : tx(TOOL_NAMES[id] || ''));
 
 // Creative catalogue, in display order.
-export const CATALOG = [I.SWORD, I.BOW, I.PICKAXE, I.FLINT, B.TNT, I.BREAD, B.CHEST, B.BED, I.DIAMOND, I.EGG, I.EGG_CREEPER, I.EGG_ZOMBIE, I.EGG_PIGLIN, I.CAR, ...PALETTE];
+export const CATALOG = [I.SWORD, I.BOW, I.PICKAXE, I.FLINT, B.TNT, I.BREAD, B.CHEST, B.BED, I.DIAMOND, I.EGG, I.EGG_CREEPER, I.EGG_ZOMBIE, I.EGG_PIGLIN, I.EGG_PORTAL, I.CAR, ...PALETTE];
 
 // The catalogue's tabs, as in the creative inventory: a row above the window and two below it.
 // Whatever block fits no other tab is a building block.
@@ -28,10 +28,10 @@ const NATURAL = [B.GRASS, B.DIRT, B.STONE, B.SAND, B.GRAVEL, B.CLAY, B.LOG, B.LE
   B.COAL_ORE, B.IRON_ORE, B.GOLD_ORE, B.REDSTONE_ORE, B.LAPIS_ORE, B.EMERALD_ORE, B.DIAMOND_ORE];
 const USEFUL = [B.TORCH, B.LAMP, B.SEA_LANTERN, B.CRAFTING_TABLE, B.FURNACE, B.CHEST, B.BED, B.OAK_DOOR, B.IRON_DOOR, B.TRAPDOOR, B.LADDER, B.FENCE, B.TNT];
 const STREET = [B.ASPHALT, B.ROAD_LINE, B.PAVEMENT, B.PAVING, I.CAR, B.FILL];
-const NETHER = [B.OBSIDIAN, B.NETHERRACK, B.SOUL_SAND, B.SOUL_SOIL, B.GLOWSTONE, B.NETHER_BRICKS, B.LAVA, B.MAGMA, B.QUARTZ_ORE, B.NETHER_GOLD_ORE,
+const NETHER = [I.EGG_PORTAL, B.OBSIDIAN, B.NETHERRACK, B.SOUL_SAND, B.SOUL_SOIL, B.GLOWSTONE, B.NETHER_BRICKS, B.LAVA, B.MAGMA, B.QUARTZ_ORE, B.NETHER_GOLD_ORE,
   B.BASALT, B.BLACKSTONE, B.CRIMSON_NYLIUM, B.WARPED_NYLIUM, B.CRIMSON_STEM, B.WARPED_STEM, B.NETHER_WART, B.WARPED_WART, B.SHROOMLIGHT];
 const TOOLS = [I.SWORD, I.BOW, I.PICKAXE, I.FLINT, I.BREAD, I.DIAMOND];
-const SPAWN = [I.EGG, I.EGG_CREEPER, I.EGG_ZOMBIE, I.EGG_PIGLIN];
+const SPAWN = [I.EGG, I.EGG_CREEPER, I.EGG_ZOMBIE, I.EGG_PIGLIN, I.EGG_PORTAL];
 const sorted = new Set([...COLOURED, ...NATURAL, ...USEFUL, ...STREET, ...NETHER, ...TOOLS, ...SPAWN]);
 // [name, icon, items, in the row below the window]
 export const TABS = [
@@ -47,7 +47,7 @@ export const TABS = [
 ].map(([name, icon, items, below]) => ({ name, icon, below: !!below, items: items.filter((id) => id !== undefined && CATALOG.includes(id)) }));
 
 // 9 hotbar slots followed by 27 storage slots.
-export const DEFAULT_SLOTS = [I.SWORD, I.BOW, I.PICKAXE, I.FLINT, B.TNT, I.EGG, B.BRICK, B.PLANKS, I.BREAD, ...new Array(27).fill(0)];
+export const DEFAULT_SLOTS = [I.SWORD, I.BOW, I.PICKAXE, I.FLINT, B.TNT, I.EGG_CREEPER, B.BRICK, B.PLANKS, I.BREAD, I.EGG_PORTAL, ...new Array(26).fill(0)];
 
 // Shapeless 2x2 recipes: sorted ingredient ids -> result.
 const RECIPES = [
@@ -188,6 +188,8 @@ for (const [id, pal] of [
   [I.EGG_CREEPER, { k: '#12360f', g: '#3fae2e', l: '#7fe064', d: '#0e0e0e' }],
   [I.EGG_ZOMBIE, { k: '#0e3a3f', g: '#2aa7b0', l: '#6fd8de', d: '#5f8f3c' }],
   [I.EGG_PIGLIN, { k: '#4a2a2a', g: '#e79a8f', l: '#f6c2b8', d: '#4c7129' }],
+  // nothing climbs out of this one: a whole portal stands where it is put down (main.js: openPortal)
+  [I.EGG_PORTAL, { k: '#150d21', g: '#7a2ed6', l: '#c58bff', d: '#1b1230' }],
 ]) SPRITES[id] = { pal, rows: SPRITES[I.EGG].rows };
 
 // Sprites a texture pack supplies instead of the drawings above (item id -> 16x16 canvas).
