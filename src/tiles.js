@@ -184,8 +184,9 @@ export class Terrain extends TileStore {
   // Bilinear elevation in metres at a block position (tiles must be loaded).
   elevAt(bx, bz) {
     const n = 2 ** this.zoom * 256;
-    const gx = (this.proj.mx0 + bx * this.proj.k) * n - 0.5;
-    const gy = (this.proj.my0 + bz * this.proj.k) * n - 0.5;
+    const p = this.proj;
+    const gx = (p.mx0 + (bx * p.c - bz * p.s) * p.k) * n - 0.5;
+    const gy = (p.my0 + (bx * p.s + bz * p.c) * p.k) * n - 0.5;
     const x0 = Math.floor(gx), y0 = Math.floor(gy);
     const fx = gx - x0, fy = gy - y0;
     const a = this.px(x0, y0), b = this.px(x0 + 1, y0), c = this.px(x0, y0 + 1), d = this.px(x0 + 1, y0 + 1);
@@ -194,7 +195,7 @@ export class Terrain extends TileStore {
 
   yOf(elev) {
     const y = Math.round(elev - this.offset) + SEA_Y;
-    return y < 3 ? 3 : y > MAX_Y - 80 ? MAX_Y - 80 : y;
+    return y < 6 ? 6 : y > MAX_Y - 80 ? MAX_Y - 80 : y;
   }
 
   // Block row of the ground at a block position.
@@ -214,13 +215,14 @@ function decodeTile(buf) {
   return new VectorTile(new PbfReader(new Uint8Array(buf)));
 }
 
+// Tile coordinates -> blocks (the block grid may be turned against the tiles, see Projection).
 function toRings(feature, frame, extent) {
-  const sc = frame.size / extent;
+  const ux = frame.ux / extent, uz = frame.uz / extent, vx = frame.vx / extent, vz = frame.vz / extent;
   return feature.loadGeometry().map((ring) => {
     const out = new Float32Array(ring.length * 2);
     for (let i = 0; i < ring.length; i++) {
-      out[i * 2] = frame.x0 + ring[i].x * sc;
-      out[i * 2 + 1] = frame.z0 + ring[i].y * sc;
+      out[i * 2] = frame.x0 + ring[i].x * ux + ring[i].y * vx;
+      out[i * 2 + 1] = frame.z0 + ring[i].x * uz + ring[i].y * vz;
     }
     return out;
   });
@@ -284,7 +286,7 @@ export class PlateauSource extends TileStore {
     ]);
     if (!roofBuf && !footBuf) return null;
     const frame = this.proj.tileFrame(16, tx, ty);
-    await this.terrain.ensureBox(frame.x0 - 48, frame.z0 - 48, frame.x0 + frame.size + 48, frame.z0 + frame.size + 48);
+    await this.terrain.ensureBox(frame.minx - 48, frame.minz - 48, frame.maxx + 48, frame.maxz + 48);
     const t0 = performance.now();
     const tile = { index: new Map(), count: 0, hasRoofs: false };
 
@@ -405,7 +407,7 @@ export class OsmSource extends TileStore {
     const frame = this.proj.tileFrame(14, tx, ty);
     // elevation tiles are only needed here for building bases and bridge decks; a laser-scanned
     // terrain supplies both per cell later, so it is not loaded for the whole map tile
-    if (!this.terrain.lidar) await this.terrain.ensureBox(frame.x0 - 64, frame.z0 - 64, frame.x0 + frame.size + 64, frame.z0 + frame.size + 64);
+    if (!this.terrain.lidar) await this.terrain.ensureBox(frame.minx - 64, frame.minz - 64, frame.maxx + 64, frame.maxz + 64);
     const t0 = performance.now();
     const vt = decodeTile(buf);
     const tile = { index: new Map(), bcount: 0 };
@@ -519,8 +521,8 @@ export class OsmSource extends TileStore {
         const p = f.properties;
         const g = f.loadGeometry()[0][0];
         if (g.x < 0 || g.y < 0 || g.x >= pl.extent || g.y >= pl.extent) continue;
-        const sc = frame.size / pl.extent;
-        places.push({ x: frame.x0 + g.x * sc, z: frame.z0 + g.y * sc, name: p['name:en'] || p['name:latin'] || p.name, local: p.name, cls: p.class });
+        const gu = g.x / pl.extent, gv = g.y / pl.extent;
+        places.push({ x: frame.x0 + gu * frame.ux + gv * frame.vx, z: frame.z0 + gu * frame.uz + gv * frame.vz, name: p['name:en'] || p['name:latin'] || p.name, local: p.name, cls: p.class });
       }
       if (places.length) this.onPlaces(places);
     }

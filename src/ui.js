@@ -1,6 +1,7 @@
 // DOM heads-up display: block-game status bars and hotbar, inventory window, minimap, info text.
+import { tx } from './i18n.js';
 import { CHUNK } from './config.js';
-import { CATALOG, craft, itemIcon, itemName } from './items.js';
+import { TABS, craft, itemIcon, itemName } from './items.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -59,6 +60,8 @@ function paint(slot, id) {
   if (id) slot.ctx.drawImage(itemIcon(id), 0, 0);
 }
 
+const CAT_ROWS = 5; // rows of the catalogue on show
+
 export class UI {
   // slots: item ids, 0-8 the hotbar, 9-35 storage (0 = empty). Edited in place.
   // gui: HUD images of a texture pack, { name: { url, img } } (see pack.js); {} for none.
@@ -68,6 +71,8 @@ export class UI {
     this.selected = 0;
     this.grid = [0, 0, 0, 0]; // crafting squares
     this.carry = 0; // item on the cursor while the inventory is open
+    this.stash = null; // the 27 slots of the chest that is open, if one is
+    this.onStash = null; // called with them when it closes
     this.hover = null;
     this.mx = this.my = 0;
     this.onChange = null; // slots changed
@@ -98,7 +103,7 @@ export class UI {
     on('pack-xp', 'xp_background', 'xp_progress');
     on('pack-inventory', 'inventory');
     on('pack-chest', 'chest');
-    document.documentElement.style.setProperty('--cat-rows', Math.min(6, Math.ceil(CATALOG.length / 9)));
+    on('pack-creative', 'creative', 'scroller', 'tab_on_1', 'tab_on_2', 'tab_on_7', 'tab_off_1', 'tab_off_2', 'tab_off_7', 'tab_low_on_1', 'tab_low_on_2', 'tab_low_off_1', 'tab_low_off_2');
   }
 
   // ---- hotbar
@@ -200,7 +205,10 @@ export class UI {
       this.cells.push(s);
       return s;
     };
-    CATALOG.forEach((id, i) => add($('cat-grid'), 'cat', i));
+    for (let i = 0; i < CAT_ROWS * 9; i++) add($('cat-grid'), 'cat', i);
+    for (let i = 0; i < 9; i++) add($('cat-bar'), 'inv', i); // the hotbar again, under the catalogue as in the creative window
+    this.buildTabs();
+    for (let i = 0; i < 27; i++) add($('stash-grid'), 'stash', i);
     for (let i = 0; i < 4; i++) add($('craft-grid'), 'craft', i);
     add($('craft-out'), 'out', 0);
     for (let i = 9; i < 36; i++) add($('store-grid'), 'inv', i);
@@ -222,8 +230,84 @@ export class UI {
     inv.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
+  // ---- the catalogue: tabs along the top, five rows showing, the rest a scroll away
+
+  catItem(i) {
+    return TABS[this.tab].items[this.catRow * 9 + i] || 0;
+  }
+
+  buildTabs() {
+    this.tab = 0;
+    this.catRow = 0;
+    const rows = [TABS.filter((t) => !t.below), TABS.filter((t) => t.below)];
+    this.tabButtons = [];
+    TABS.forEach((t, n) => {
+      const row = rows[t.below ? 1 : 0], at = row.indexOf(t);
+      const box = $(t.below ? 'cat-tabs-low' : 'cat-tabs');
+      const b = document.createElement('button');
+      b.type = 'button';
+      // the row above fills the window's width, its last tab against the right edge
+      b.className = at === 0 ? 'first' : !t.below && at === row.length - 1 && row.length > 6 ? 'last' : '';
+      this.tabButtons.push(b);
+      b.title = tx(t.name);
+      const c = document.createElement('canvas');
+      c.width = c.height = 48;
+      c.getContext('2d').drawImage(itemIcon(t.icon), 0, 0);
+      b.append(c);
+      b.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.setTab(n);
+      });
+      box.append(b);
+    });
+    const win = document.querySelector('.mc-window.catalog');
+    win.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.scrollCat(this.catRow + Math.sign(e.deltaY));
+    }, { passive: false });
+    // the bar is a ruler of the rows: a press or a drag on it goes to the row under the pointer
+    const track = $('cat-scroll');
+    const seek = (e) => {
+      const r = track.getBoundingClientRect();
+      this.scrollCat(Math.round(((e.clientY - r.top) / r.height) * this.catMax()));
+    };
+    track.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      seek(e);
+      const up = () => {
+        window.removeEventListener('mousemove', seek);
+        window.removeEventListener('mouseup', up);
+      };
+      window.addEventListener('mousemove', seek);
+      window.addEventListener('mouseup', up);
+    });
+    this.setTab(0);
+  }
+
+  catMax() {
+    return Math.max(0, Math.ceil(TABS[this.tab].items.length / 9) - CAT_ROWS);
+  }
+
+  setTab(n) {
+    this.tab = n;
+    this.tabButtons.forEach((b, i) => b.classList.toggle('on', i === n));
+    $('cat-title').textContent = tx(TABS[n].name);
+    this.scrollCat(0);
+  }
+
+  scrollCat(row) {
+    const max = this.catMax();
+    this.catRow = Math.max(0, Math.min(max, row));
+    $('cat-scroll').classList.toggle('idle', !max);
+    $('cat-knob').style.top = `${max ? (this.catRow / max) * 100 : 0}%`;
+    if (this.cells) for (const s of this.cells) if (s.kind === 'cat') paint(s, this.itemOf(s));
+  }
+
   itemOf(s) {
-    if (s.kind === 'cat') return CATALOG[s.index];
+    if (s.kind === 'cat') return this.catItem(s.index);
+    if (s.kind === 'stash') return this.stash ? this.stash[s.index] : 0;
     if (s.kind === 'craft') return this.grid[s.index];
     if (s.kind === 'out') return craft(this.grid);
     return this.slots[s.index];
@@ -232,21 +316,33 @@ export class UI {
   click(s, shift) {
     const sl = this.slots;
     if (s.kind === 'cat') {
-      const id = CATALOG[s.index];
-      if (shift) {
+      const id = this.catItem(s.index);
+      if (!id) this.carry = 0; // an empty catalogue slot takes whatever is carried
+      else if (shift) {
         // straight into the hotbar if there is room, else into storage
         const i = sl.indexOf(0);
         if (i >= 0) sl[i] = id;
       } else this.carry = this.carry ? 0 : id; // an endless supply; also where unwanted items go
     } else if (s.kind === 'inv') {
       const i = s.index;
-      if (shift) {
+      if (shift && this.stash) {
+        // with a chest open: straight into it
+        const j = this.stash.indexOf(0);
+        if (j >= 0) [this.stash[j], sl[i]] = [sl[i], 0];
+      } else if (shift) {
         // hop between hotbar and storage
         const [from, to] = i < 9 ? [9, 36] : [0, 9];
         let j = -1;
         for (let k = from; k < to && j < 0; k++) if (!sl[k]) j = k;
         if (j >= 0) [sl[j], sl[i]] = [sl[i], 0];
       } else [sl[i], this.carry] = [this.carry, sl[i]];
+    } else if (s.kind === 'stash' && this.stash) {
+      const i = s.index;
+      if (shift) {
+        // out of the chest into the first free slot
+        const j = sl.indexOf(0);
+        if (j >= 0) [sl[j], this.stash[i]] = [this.stash[i], 0];
+      } else [this.stash[i], this.carry] = [this.carry, this.stash[i]];
     } else if (s.kind === 'craft') {
       [this.grid[s.index], this.carry] = [this.carry, this.grid[s.index]];
     } else if (s.kind === 'out') {
@@ -266,7 +362,7 @@ export class UI {
     const n = +code.slice(5) - 1;
     if (n < 0 || n > 8) return;
     const s = this.hover;
-    if (s.kind === 'cat') this.slots[n] = CATALOG[s.index];
+    if (s.kind === 'cat') this.slots[n] = this.catItem(s.index) || this.slots[n];
     else if (s.kind === 'inv') [this.slots[n], this.slots[s.index]] = [this.slots[s.index], this.slots[n]];
     else return;
     this.changed();
@@ -282,6 +378,16 @@ export class UI {
     this.refresh();
   }
 
+  // The inventory with a chest's 27 slots above it in place of the catalogue. `items` is edited
+  // in place; `done(items)` is called when the window closes.
+  openChest(items, done) {
+    this.stash = items;
+    this.onStash = done;
+    $('stash').classList.remove('hidden');
+    document.querySelector('.mc-window.catalog').classList.add('hidden');
+    this.openInventory();
+  }
+
   closeInventory() {
     // whatever is on the cursor or the crafting squares goes back into a free slot
     for (const id of [this.carry, ...this.grid]) {
@@ -292,6 +398,13 @@ export class UI {
     this.grid.fill(0);
     this.hover = null;
     $('inventory').classList.add('hidden');
+    if (this.stash) {
+      const items = this.stash, done = this.onStash;
+      this.stash = this.onStash = null;
+      $('stash').classList.add('hidden');
+      document.querySelector('.mc-window.catalog').classList.remove('hidden');
+      if (done) done(items);
+    }
     this.changed();
   }
 
@@ -368,7 +481,7 @@ export class UI {
   }
 
   toast(text, ms = 2200) {
-    this.flash($('toast'), text, ms);
+    this.flash($('toast'), tx(text), ms);
   }
 
   setTarget(text) {
@@ -405,6 +518,12 @@ export class UI {
   }
 
   // ---- minimap
+
+  // The map is drawn along the block grid; when that is turned to the streets, north is no
+  // longer straight up, and the K slides along the top edge to where it is.
+  setNorth(turn) {
+    $('north').style.left = `${50 - Math.tan((turn * Math.PI) / 180) * 50}%`;
+  }
 
   toggleMap() {
     this.bigMap = !this.bigMap;

@@ -137,3 +137,91 @@ export function groundMatch(la, lb, dx, dz, w = 2000, h = 1000) {
   // a real match stands clearly above the typical trial
   return best.score > 0.3 && best.score - scores[scores.length >> 1] > 0.08 ? best : null;
 }
+
+// Where does a photo's own smeared-out vehicle begin? Some sources paint the car out with a
+// blur that is wider than the car and different from one model year to the next, so it is read
+// off the picture. `px`: RGBA of the strip from `top` degrees below the horizon down to the
+// nadir, `cw` x `ch`, about a quarter of the picture's size, in the camera's own frame (centre
+// column = straight ahead). Everything without detail that connects to the smear under the
+// camera counts as smear; watermarks inside it are islands the fill flows around.
+// -> Float32Array(cw): degrees below the horizon per column, or null if nothing is smeared.
+export function smearOutline(px, cw, ch, top = 10) {
+  const luma = new Float32Array(cw * ch);
+  for (let i = 0; i < cw * ch; i++) luma[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+  const detail = new Float32Array(cw * ch);
+  for (let y = 0; y < ch - 1; y++) {
+    for (let x = 0; x < cw; x++) {
+      const k = y * cw + x;
+      detail[k] = Math.abs(luma[k + cw] - luma[k]) + Math.abs(luma[y * cw + ((x + 1) % cw)] - luma[k]);
+    }
+  }
+  const local = new Float32Array(cw * ch); // detail averaged over a small window
+  for (let y = 0; y < ch; y++) {
+    for (let x = 0; x < cw; x++) {
+      let s = 0, n = 0;
+      for (let j = -2; j <= 2; j++) {
+        const yy = y + j;
+        if (yy < 0 || yy >= ch) continue;
+        for (let i = -6; i <= 6; i += 2) {
+          s += detail[yy * cw + ((x + i + cw) % cw)];
+          n++;
+        }
+      }
+      local[y * cw + x] = s / n;
+    }
+  }
+  const span = 90 - top;
+  const row = (deg) => Math.round(((deg - top) / span) * ch);
+  const below = (r) => top + ((r + 0.5) / ch) * span;
+  // How much detail is "none" depends on the picture: the rim of a smear keeps a trace of what
+  // was under it, more of it over sunlit cobbles than over dull asphalt. So the bar is set from
+  // the picture's own sharp ground, the ring just below the horizon strip's top.
+  const ring = Array.from(local.subarray(0, row(top + 3) * cw)).sort((p, q) => p - q);
+  const bar = Math.min(4, Math.max(1, ring[ring.length >> 1] * 0.2));
+  const flat = new Uint8Array(cw * ch);
+  for (let i = 0; i < cw * ch; i++) flat[i] = local[i] < bar ? 1 : 0;
+  // the fill starts from the ring 70 to 80 degrees down; the very bottom rows are left out (the
+  // pole of the projection is noise, not detail)
+  const y0 = row(70), y1 = row(80), bottom = row(86);
+  const seen = new Uint8Array(cw * ch), stack = [];
+  for (let y = y0; y < y1; y++) {
+    for (let x = 0; x < cw; x++) {
+      if (!flat[y * cw + x]) continue;
+      seen[y * cw + x] = 1;
+      stack.push(y * cw + x);
+    }
+  }
+  if (stack.length < (y1 - y0) * cw * 0.5) return null; // sharp right under the camera: nothing was painted out
+  while (stack.length) {
+    const k = stack.pop(), y = (k / cw) | 0, x = k - y * cw;
+    const around = [y * cw + ((x + 1) % cw), y * cw + ((x + cw - 1) % cw), k - cw, k + cw];
+    for (let i = 0; i < 4; i++) {
+      const n = around[i];
+      if (n < 0 || n >= (bottom + 1) * cw || seen[n] || !flat[n]) continue;
+      seen[n] = 1;
+      stack.push(n);
+    }
+  }
+  const edge = new Float32Array(cw);
+  for (let x = 0; x < cw; x++) {
+    let y = 0;
+    while (y < ch && !seen[y * cw + x]) y++;
+    edge[x] = below(y);
+  }
+  // A car is the same on both sides, and something sharp lying on the smear (a shadow's edge,
+  // a watermark at its rim) only ever makes it look smaller: take the wider of the two sides and
+  // of the directions close by, then round the outline off.
+  const wide = new Float32Array(cw), out = new Float32Array(cw);
+  const reach = Math.round(cw / 24); // 15 degrees
+  for (let x = 0; x < cw; x++) {
+    let m = 90;
+    for (let i = -reach; i <= reach; i++) m = Math.min(m, edge[(x + i + cw) % cw], edge[(cw - x + i + cw) % cw]);
+    wide[x] = m;
+  }
+  for (let x = 0; x < cw; x++) {
+    let sum = 0;
+    for (let i = -reach; i <= reach; i++) sum += wide[(x + i + cw) % cw];
+    out[x] = sum / (2 * reach + 1);
+  }
+  return out;
+}

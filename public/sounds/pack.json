@@ -160,5 +160,7 @@
   ],
   "rattle": [
     "mob/skeleton/death.ogg"
-  ]
+  ],
+  "portal": "portal/trigger.ogg",
+  "travel": "portal/travel.ogg"
 }

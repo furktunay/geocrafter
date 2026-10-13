@@ -32,10 +32,10 @@ if (!jar) {
   jar = jars[0] && jars[0].p;
 }
 if (!jar || !fs.existsSync(jar)) {
-  console.error('Bu bilgisayarda Minecraft kurulumu bulunamadı. Bakılan yerler:');
+  console.error('No Minecraft installation found on this computer. Looked in:');
   for (const r of roots) console.error(`  ${r}`);
-  console.error('Oyunu kurup bir kez açtıktan sonra tekrar dene, ya da sürüm dosyasının yolunu ver:');
-  console.error('  npm run textures -- "/yol/versions/1.x/1.x.jar"');
+  console.error('Install the game and start it once, then try again, or give the path of a version file:');
+  console.error('  npm run textures -- "/path/to/versions/1.x/1.x.jar"');
   process.exit(1);
 }
 
@@ -73,5 +73,5 @@ for (const file of wanted) {
   copied++;
 }
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log(`${copied} görsel kopyalandı (${path.basename(jar)}) -> public/textures/`);
-if (missing.length) console.log(`Bu sürümde bulunamayan ${missing.length} dosya kendi çizimiyle kalacak: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ' …' : ''}`);
+console.log(`Copied ${copied} image(s) (${path.basename(jar)}) -> public/textures/`);
+if (missing.length) console.log(`${missing.length} file(s) not in this version keep the game's own drawing: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ' …' : ''}`);

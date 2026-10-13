@@ -264,7 +264,7 @@ export class LidarTerrain {
 
   yOf(elev) {
     const y = Math.round(elev - this.offset) + SEA_Y;
-    return y < 3 ? 3 : y > MAX_Y - 80 ? MAX_Y - 80 : y;
+    return y < 6 ? 6 : y > MAX_Y - 80 ? MAX_Y - 80 : y;
   }
 
   // Exact world height of an elevation (block tops sit within half a block of it).

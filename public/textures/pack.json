@@ -53,7 +53,199 @@
     "snow": "block/snow.png",
     "tnt_side": "block/tnt_side.png",
     "tnt_top": "block/tnt_top.png",
-    "tnt_bottom": "block/tnt_bottom.png"
+    "tnt_bottom": "block/tnt_bottom.png",
+    "obsidian": "block/obsidian.png",
+    "diamond_ore": "block/diamond_ore.png",
+    "diamond_block": "block/diamond_block.png",
+    "netherrack": "block/netherrack.png",
+    "soul_sand": "block/soul_sand.png",
+    "glowstone": "block/glowstone.png",
+    "nether_bricks": "block/nether_bricks.png",
+    "lava": "block/lava_still.png",
+    "portal": "block/nether_portal.png",
+    "chest_top": {
+      "file": "entity/chest/normal.png",
+      "place": [
+        [
+          28,
+          0,
+          14,
+          14,
+          1,
+          1
+        ]
+      ]
+    },
+    "chest_side": {
+      "file": "entity/chest/normal.png",
+      "place": [
+        [
+          0,
+          33,
+          14,
+          10,
+          1,
+          6
+        ],
+        [
+          0,
+          14,
+          14,
+          5,
+          1,
+          2
+        ]
+      ]
+    },
+    "magma": "block/magma.png",
+    "quartz_ore": "block/nether_quartz_ore.png",
+    "nether_gold_ore": "block/nether_gold_ore.png",
+    "basalt_top": "block/basalt_top.png",
+    "basalt_side": "block/basalt_side.png",
+    "blackstone": "block/blackstone.png",
+    "soul_soil": "block/soul_soil.png",
+    "crimson_nylium": "block/crimson_nylium.png",
+    "crimson_nylium_side": "block/crimson_nylium_side.png",
+    "warped_nylium": "block/warped_nylium.png",
+    "warped_nylium_side": "block/warped_nylium_side.png",
+    "crimson_stem": "block/crimson_stem.png",
+    "crimson_stem_top": "block/crimson_stem_top.png",
+    "warped_stem": "block/warped_stem.png",
+    "warped_stem_top": "block/warped_stem_top.png",
+    "nether_wart": "block/nether_wart_block.png",
+    "warped_wart": "block/warped_wart_block.png",
+    "shroomlight": "block/shroomlight.png",
+    "chest_bottom": {
+      "file": "entity/chest/normal.png",
+      "place": [
+        [
+          14,
+          19,
+          14,
+          14,
+          1,
+          1
+        ]
+      ]
+    },
+    "chest_front": {
+      "file": "entity/chest/normal.png",
+      "place": [
+        [
+          14,
+          33,
+          14,
+          10,
+          1,
+          6
+        ],
+        [
+          14,
+          14,
+          14,
+          5,
+          1,
+          2
+        ],
+        [
+          1,
+          1,
+          2,
+          4,
+          7,
+          5
+        ]
+      ]
+    },
+    "bed_top_head_n": {
+      "file": "block/red_bed_head_up.png",
+      "flip": "y"
+    },
+    "bed_top_head_e": {
+      "file": "block/red_bed_head_up.png",
+      "turn": 1
+    },
+    "bed_top_head_s": "block/red_bed_head_up.png",
+    "bed_top_head_w": {
+      "file": "block/red_bed_head_up.png",
+      "turn": 3
+    },
+    "bed_top_foot": "block/red_bed_foot_up.png",
+    "bed_side_head_a": "block/red_bed_head_west.png",
+    "bed_side_head_b": "block/red_bed_head_east.png",
+    "bed_side_foot_a": "block/red_bed_foot_west.png",
+    "bed_side_foot_b": "block/red_bed_foot_east.png",
+    "bed_end_foot": "block/red_bed_foot_south.png",
+    "bed_end_head": "block/bed_head_north.png",
+    "bed_bottom": "block/bed_down.png",
+    "door_oak_top": "block/oak_door_top.png",
+    "door_oak_bottom": "block/oak_door_bottom.png",
+    "door_iron_top": "block/iron_door_top.png",
+    "door_iron_bottom": "block/iron_door_bottom.png",
+    "trapdoor": "block/oak_trapdoor.png",
+    "ladder": "block/ladder.png",
+    "torch": "block/torch.png",
+    "iron_bars": "block/iron_bars.png",
+    "cobblestone": "block/cobblestone.png",
+    "mossy_cobblestone": "block/mossy_cobblestone.png",
+    "stone_bricks": "block/stone_bricks.png",
+    "mossy_stone_bricks": "block/mossy_stone_bricks.png",
+    "smooth_stone": "block/smooth_stone.png",
+    "andesite": "block/andesite.png",
+    "diorite": "block/diorite.png",
+    "granite": "block/granite.png",
+    "deepslate": "block/deepslate.png",
+    "sandstone_top": "block/sandstone_top.png",
+    "sandstone_side": "block/sandstone.png",
+    "sandstone_bottom": "block/sandstone_bottom.png",
+    "clay": "block/clay.png",
+    "ice": "block/ice.png",
+    "spruce_planks": "block/spruce_planks.png",
+    "birch_planks": "block/birch_planks.png",
+    "dark_oak_planks": "block/dark_oak_planks.png",
+    "bookshelf": "block/bookshelf.png",
+    "crafting_table_top": "block/crafting_table_top.png",
+    "crafting_table_side": "block/crafting_table_side.png",
+    "crafting_table_front": "block/crafting_table_front.png",
+    "furnace_top": "block/furnace_top.png",
+    "furnace_side": "block/furnace_side.png",
+    "furnace_front": "block/furnace_front.png",
+    "pumpkin_side": "block/pumpkin_side.png",
+    "pumpkin_top": "block/pumpkin_top.png",
+    "melon_side": "block/melon_side.png",
+    "melon_top": "block/melon_top.png",
+    "hay_side": "block/hay_block_side.png",
+    "hay_top": "block/hay_block_top.png",
+    "gold_block": "block/gold_block.png",
+    "emerald_block": "block/emerald_block.png",
+    "lapis_block": "block/lapis_block.png",
+    "redstone_block": "block/redstone_block.png",
+    "coal_block": "block/coal_block.png",
+    "quartz_block": "block/quartz_block_side.png",
+    "coal_ore": "block/coal_ore.png",
+    "iron_ore": "block/iron_ore.png",
+    "gold_ore": "block/gold_ore.png",
+    "emerald_ore": "block/emerald_ore.png",
+    "redstone_ore": "block/redstone_ore.png",
+    "lapis_ore": "block/lapis_ore.png",
+    "terracotta": "block/terracotta.png",
+    "sea_lantern": "block/sea_lantern.png",
+    "wool_white": "block/white_wool.png",
+    "wool_orange": "block/orange_wool.png",
+    "wool_magenta": "block/magenta_wool.png",
+    "wool_light_blue": "block/light_blue_wool.png",
+    "wool_yellow": "block/yellow_wool.png",
+    "wool_lime": "block/lime_wool.png",
+    "wool_pink": "block/pink_wool.png",
+    "wool_gray": "block/gray_wool.png",
+    "wool_light_gray": "block/light_gray_wool.png",
+    "wool_cyan": "block/cyan_wool.png",
+    "wool_purple": "block/purple_wool.png",
+    "wool_blue": "block/blue_wool.png",
+    "wool_brown": "block/brown_wool.png",
+    "wool_green": "block/green_wool.png",
+    "wool_red": "block/red_wool.png",
+    "wool_black": "block/black_wool.png"
   },
   "items": {
     "sword": "item/iron_sword.png",
@@ -61,7 +253,13 @@
     "flint": "item/flint_and_steel.png",
     "bow": "item/bow.png",
     "egg": "item/skeleton_spawn_egg.png",
-    "bread": "item/bread.png"
+    "bread": "item/bread.png",
+    "diamond": "item/diamond.png",
+    "egg_creeper": "item/creeper_spawn_egg.png",
+    "egg_zombie": "item/zombie_spawn_egg.png",
+    "egg_piglin": "item/zombified_piglin_spawn_egg.png",
+    "door_oak": "item/oak_door.png",
+    "door_iron": "item/iron_door.png"
   },
   "gui": {
     "hotbar": "gui/sprites/hud/hotbar.png",
@@ -75,6 +273,24 @@
     "xp_background": "gui/sprites/hud/experience_bar_background.png",
     "xp_progress": "gui/sprites/hud/experience_bar_progress.png",
     "inventory": "gui/container/inventory.png",
-    "chest": "gui/container/generic_54.png"
+    "chest": "gui/container/generic_54.png",
+    "creative": "gui/container/creative_inventory/tab_items.png",
+    "scroller": "gui/sprites/container/creative_inventory/scroller.png",
+    "tab_on_1": "gui/sprites/container/creative_inventory/tab_top_selected_1.png",
+    "tab_on_2": "gui/sprites/container/creative_inventory/tab_top_selected_2.png",
+    "tab_on_7": "gui/sprites/container/creative_inventory/tab_top_selected_7.png",
+    "tab_off_1": "gui/sprites/container/creative_inventory/tab_top_unselected_1.png",
+    "tab_off_2": "gui/sprites/container/creative_inventory/tab_top_unselected_2.png",
+    "tab_off_7": "gui/sprites/container/creative_inventory/tab_top_unselected_7.png",
+    "tab_low_on_1": "gui/sprites/container/creative_inventory/tab_bottom_selected_1.png",
+    "tab_low_on_2": "gui/sprites/container/creative_inventory/tab_bottom_selected_2.png",
+    "tab_low_off_1": "gui/sprites/container/creative_inventory/tab_bottom_unselected_1.png",
+    "tab_low_off_2": "gui/sprites/container/creative_inventory/tab_bottom_unselected_2.png"
+  },
+  "entities": {
+    "skeleton": "entity/skeleton/skeleton.png",
+    "zombie": "entity/zombie/zombie.png",
+    "creeper": "entity/creeper/creeper.png",
+    "piglin": "entity/piglin/zombified_piglin.png"
   }
 }

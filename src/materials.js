@@ -6,6 +6,9 @@ import { buildTextures, TEX_SIZE } from './textures.js';
 // only where it was visible from the camera that took it (distance cube map of the unedited
 // world) and only if the player has not touched it - so breaking a real surface shows ordinary
 // blocks underneath, and placed blocks stay ordinary blocks.
+// The ground patch of a panorama covers elevations from straight down to this (radians).
+export const PATCH_TOP = (-10 * Math.PI) / 180;
+
 export const PHOTO_GLSL = /* glsl */ `
 uniform sampler2D uPanoA;
 uniform sampler2D uPanoB;
@@ -18,7 +21,7 @@ uniform sampler2D uPatchA; // ground under the capturing vehicle, rebuilt from n
 uniform sampler2D uPatchB;
 uniform vec2 uPatchOn; // how far each patch has faded in
 
-const float PATCH_TOP = -0.3490659; // the patch covers elevations from straight down to -20 deg
+const float PATCH_TOP = ${PATCH_TOP.toFixed(7)};
 
 vec3 equirect(sampler2D tex, sampler2D under, float patched, vec3 p) {
   float el = asin(clamp(p.y, -1.0, 1.0));
@@ -26,7 +29,7 @@ vec3 equirect(sampler2D tex, sampler2D under, float patched, vec3 p) {
   vec3 c = texture(tex, uv).rgb;
   if (patched > 0.0 && el < PATCH_TOP) {
     vec4 f = texture(under, vec2(uv.x, (el + 1.5707963) / (PATCH_TOP + 1.5707963)));
-    c = mix(c, f.rgb, f.a * patched * smoothstep(-0.44, -0.5, el)); // blends in between -25 and -29 deg
+    c = mix(c, f.rgb, f.a * patched); // the patch's alpha says where the vehicle was
   }
   return c;
 }

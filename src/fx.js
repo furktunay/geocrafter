@@ -1,6 +1,6 @@
 // Things that happen in the world for a moment: lit TNT, explosions, flying debris.
 import * as THREE from 'three';
-import { B, SOLID, TEX_TOP, TEX_SIDE, TEX_BOTTOM } from './blocks.js';
+import { B, SOLID, BLASTPROOF, MATE, TEX_TOP, TEX_SIDE, TEX_BOTTOM } from './blocks.js';
 import { buildTextures } from './textures.js';
 import { layerCanvas } from './items.js';
 
@@ -99,8 +99,11 @@ export class Effects {
           if (d > power - 0.9 + Math.random() * 1.2) continue; // ragged edge
           const x = bx + dx, y = by + dy, z = bz + dz;
           const id = w.getBlock(x, y, z);
-          if (!id || id === B.BEDROCK || id === B.WATER) continue;
+          if (!id || BLASTPROOF.has(id)) continue;
           edits.push([x, y, z, B.AIR]);
+          // half a door or a bed does not outlive the other half
+          const m = MATE[id];
+          if (m && w.getBlock(x + m[0], y + m[1], z + m[2]) === m[3]) edits.push([x + m[0], y + m[1], z + m[2], B.AIR]);
           if (id === B.TNT) chain.push([x, y, z]);
           else if (samples.length < 40 && Math.random() < 0.25) samples.push([x, y, z, id]);
         }

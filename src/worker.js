@@ -17,8 +17,8 @@ function meshTransfers(m) {
   return [m.pos.buffer, m.dat.buffer, m.idx.buffer];
 }
 
-async function init({ lon, lat, photo }) {
-  const proj = new Projection(lon, lat);
+async function init({ lon, lat, turn, photo }) {
+  const proj = new Projection(lon, lat, turn || 0);
   const japan = isJapan(lon, lat);
   // the Netherlands has a laser-scanned surface; elsewhere elevation tiles and building outlines
   const lidar = inNetherlands(lon, lat);

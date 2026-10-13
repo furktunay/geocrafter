@@ -19,10 +19,10 @@ const places = [
 ].filter(Boolean);
 const assets = places.find((dir) => fs.existsSync(path.join(dir, 'indexes')) && fs.existsSync(path.join(dir, 'objects')));
 if (!assets) {
-  console.error('Bu bilgisayarda Minecraft kurulumu bulunamadı. Bakılan yerler:');
+  console.error('No Minecraft installation found on this computer. Looked in:');
   for (const p of places) console.error(`  ${p}`);
-  console.error('Oyunu kurup bir kez açtıktan sonra tekrar dene, ya da assets klasörünün yolunu ver:');
-  console.error('  npm run sounds -- "/yol/assets"');
+  console.error('Install the game and start it once, then try again, or give the path of its assets folder:');
+  console.error('  npm run sounds -- "/path/to/assets"');
   process.exit(1);
 }
 
@@ -31,7 +31,7 @@ const indexes = fs.readdirSync(path.join(assets, 'indexes'))
   .map((f) => ({ f, at: fs.statSync(path.join(assets, 'indexes', f)).mtimeMs }))
   .sort((a, b) => b.at - a.at);
 if (!indexes.length) {
-  console.error(`${assets}/indexes boş: oyunu bir kez açıp kapat, sonra tekrar dene.`);
+  console.error(`${assets}/indexes is empty: start the game once, close it, then try again.`);
   process.exit(1);
 }
 const objects = JSON.parse(fs.readFileSync(path.join(assets, 'indexes', indexes[0].f), 'utf8')).objects || {};
@@ -52,5 +52,5 @@ for (const file of wanted) {
   fs.copyFileSync(from, to);
   copied++;
 }
-console.log(`${copied} ses dosyası kopyalandı (${indexes[0].f}) -> public/sounds/`);
-if (missing.length) console.log(`Kurulumda bulunamayan ${missing.length} dosya üretilen sesiyle kalacak: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ' …' : ''}`);
+console.log(`Copied ${copied} sound file(s) (${indexes[0].f}) -> public/sounds/`);
+if (missing.length) console.log(`${missing.length} file(s) not in this installation keep the game's own sound: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ' …' : ''}`);

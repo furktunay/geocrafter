@@ -1,19 +1,26 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Street Craft — Gerçek sokak fotoğrafında Minecraft</title>
+    <title>Street Craft — a block game inside real street photos</title>
+    <meta name="description" content="Walk through real 360° street photos, build in them with blocks, dig up the real road and blow up the real buildings. An experimental project." />
+    <meta name="theme-color" content="#0b0d12" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23866043'/%3E%3Crect width='16' height='5' fill='%23609e38'/%3E%3Crect x='2' y='5' width='3' height='2' fill='%23609e38'/%3E%3Crect x='9' y='5' width='4' height='1' fill='%23609e38'/%3E%3Crect x='5' y='9' width='2' height='2' fill='%236f4e36'/%3E%3Crect x='11' y='11' width='2' height='2' fill='%236f4e36'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+15&display=swap" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <canvas id="game"></canvas>
     <div id="underwater"></div>
+    <canvas id="portal-veil" width="16" height="16"></canvas>
     <div id="hurt"></div>
 
     <div id="hud" class="hidden">
       <div id="info"></div>
-      <div id="map-wrap"><canvas id="minimap"></canvas><span id="north">K</span></div>
+      <div id="map-wrap"><canvas id="minimap"></canvas><span id="north">N</span></div>
       <div id="crosshair"></div>
       <div id="target"></div>
       <div id="place-title"></div>
@@ -33,21 +40,29 @@
 
     <div id="inventory" class="hidden">
       <div class="mc-window catalog">
-        <h4>Tüm eşyalar</h4>
+        <div id="cat-tabs"></div>
+        <h4 id="cat-title"></h4>
         <div class="mc-grid" id="cat-grid"></div>
+        <div id="cat-scroll"><i id="cat-knob"></i></div>
+        <div class="mc-grid bar" id="cat-bar"></div>
+        <div id="cat-tabs-low"></div>
+      </div>
+      <div class="mc-window stash hidden" id="stash">
+        <h4 data-t>Chest</h4>
+        <div class="mc-grid" id="stash-grid"></div>
       </div>
       <div class="mc-window bag">
         <div class="mc-top">
           <div class="mc-armor"><i></i><i></i><i></i><i></i></div>
           <canvas id="mc-doll" width="51" height="72"></canvas>
           <div class="mc-craft">
-            <h4>Üretim</h4>
+            <h4 data-t>Crafting</h4>
             <div class="mc-craft-row">
               <div class="mc-grid two" id="craft-grid"></div>
               <span class="mc-arrow"></span>
               <div class="mc-grid one" id="craft-out"></div>
             </div>
-            <p id="craft-hint">Kütük → tahta · kum + çakıl → TNT · çelik + çakıl → çakmak</p>
+            <p id="craft-hint">Log → planks · sand + gravel → TNT · steel + gravel → flint and steel</p>
           </div>
         </div>
         <div class="mc-grid" id="store-grid"></div>
@@ -58,65 +73,141 @@
     </div>
 
     <div id="death" class="hidden">
-      <h2>Öldün!</h2>
+      <h2 data-t>You died!</h2>
       <p id="death-score"></p>
-      <button id="respawn" type="button">Yeniden doğ</button>
+      <button id="respawn" type="button" data-t>Respawn</button>
     </div>
 
-    <div id="overlay">
-      <div class="panel">
-        <h1>STREET <span>CRAFT</span></h1>
-        <p class="tagline">Gerçek 360° sokak fotoğrafının içinde Minecraft. Fotoğraftan fotoğrafa yürü, bloklarını koy, gerçek sokağı TNT ile havaya uçur — altından blok dünyası çıkar.</p>
+    <div id="overlay" class="title">
+      <div id="title-bg"></div>
 
-        <div id="status"><div id="bar"><div id="bar-fill"></div></div><span id="status-text">Hazırlanıyor…</span></div>
-        <button id="play" disabled>Yükleniyor…</button>
-
-        <h3>Konum</h3>
-        <div id="locations"></div>
-        <form id="custom">
-          <input id="coords" type="text" placeholder="Enlem, boylam (örn. 52.3731, 4.8932)" autocomplete="off" />
-          <button type="submit">Git</button>
-        </form>
-
-        <h3>Kontroller</h3>
-        <div id="controls">
-          <div><kbd>W</kbd> baktığın oka ışınlan · <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> sol, geri, sağ (oka tıklamak da olur)</div>
-          <div><kbd>Sol tık</kbd> kır / vur · <kbd>Sağ tık</kbd> koy / kullan</div>
-          <div><kbd>1</kbd>–<kbd>9</kbd>, tekerlek: eşya seç · <kbd>E</kbd> envanter ve üretim</div>
-          <div>TNT koy, çakmakla <kbd>sağ tık</kbd>: fitil yanar, 4 saniye sonra patlar</div>
-          <div>Yay: <kbd>sağ tık</kbd> basılı tut, bırakınca ok atar · iskelet yumurtası: <kbd>sağ tık</kbd> ile bırak · ekmek: ye</div>
-          <div><kbd>F</kbd> serbest uçuş (fotoğraf yamulur) · <kbd>G</kbd> fotoğrafa dön</div>
-          <div><kbd>R</kbd> iki kez: bu haritayı sıfırla · <kbd>P</kbd> fotoğrafı aç/kapat · <kbd>M</kbd> harita · <kbd>F3</kbd> bilgi</div>
+      <section class="screen" data-screen="main">
+        <div id="logo">
+          <canvas id="logo-art" role="img" aria-label="Street Craft"></canvas>
+          <div id="logo-sub" data-t>STREET EDITION</div>
+          <div id="splash"></div>
         </div>
-        <div id="edits-row">
+        <div class="menu">
+          <button id="play" disabled data-t>Loading…</button>
+          <button id="open-places" type="button" data-go="places">Place</button>
+          <div class="menu-row">
+            <button type="button" data-go="options" data-t>Options…</button>
+            <button type="button" data-go="controls" data-t>Controls</button>
+          </div>
+          <div id="status"><div id="bar"><div id="bar-fill"></div></div><span id="status-text" data-t>Getting ready…</span></div>
+        </div>
+        <button id="promo" type="button" data-go="options">
+          <b id="promo-title"></b>
+          <span id="promo-text"></span>
+        </button>
+      </section>
+
+      <section class="screen hidden" data-screen="places">
+        <h2 data-t>Choose a place</h2>
+        <div class="sheet">
+          <p class="hint lead hidden" id="places-note"></p>
+          <div id="locations"></div>
+          <h3 data-t>Add your own place</h3>
+          <form id="custom" class="hidden">
+            <input id="place-name" type="text" placeholder="Name (optional)" maxlength="40" autocomplete="off" />
+            <input id="coords" type="text" placeholder="Latitude, longitude, or a Google Maps link" autocomplete="off" />
+            <button type="submit" data-t>Add</button>
+          </form>
+          <button id="custom-locked" class="hidden" type="button" data-go="options"></button>
+        </div>
+        <button class="back" type="button" data-go="main" data-t>Back</button>
+      </section>
+
+      <section class="screen hidden" data-screen="controls">
+        <h2 data-t>Controls</h2>
+        <div class="sheet">
+          <div id="controls">
+          <div data-t><kbd>W</kbd> step to the arrow you face · <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> left, back, right</div>
+          <div data-t><kbd>Left click</kbd> break / hit · <kbd>Right click</kbd> place / use</div>
+          <div data-t><kbd>1</kbd>–<kbd>9</kbd>, wheel: pick an item · <kbd>E</kbd> inventory and crafting</div>
+          <div data-t>Place TNT, <kbd>right click</kbd> it with flint and steel: the fuse burns, 4 seconds later it goes off</div>
+          <div data-t>Bow: hold <kbd>right click</kbd>, let go to shoot · eggs: <kbd>right click</kbd> to set a creature down · bread: eat</div>
+          <div data-t><kbd>Tab</kbd> free roam / photo mode · while roaming, double <kbd>Space</kbd> or <kbd>F</kbd>: fly</div>
+          <div data-t>Portal: an upright obsidian frame (2×3 inside), light it with flint and steel, <kbd>right click</kbd> it or step in, wait 4 seconds → Nether</div>
+          <div data-t>Chest: <kbd>right click</kbd> to open · Bed: <kbd>right click</kbd> to try to sleep (it explodes)</div>
+          <div data-t>Cars: look at the road under the side of a car that faces you, <kbd>V</kbd>: the car turns solid and breaks when hit · <kbd>V</kbd> on it again: undo · <kbd>Shift</kbd>: crosswise</div>
+          <div data-t><kbd>R</kbd> twice: reset this map · <kbd>P</kbd> photo on/off · <kbd>M</kbd> map · <kbd>F3</kbd> info</div>
+        </div>
+        </div>
+        <button class="back" type="button" data-go="main" data-t>Back</button>
+      </section>
+
+      <section class="screen hidden" data-screen="options">
+        <h2 data-t>Options</h2>
+        <div class="sheet">
+          <div id="edits-row">
           <span id="edits-count"></span>
           <span class="reset-buttons">
-            <button id="reset-edits" type="button">Bu haritayı sıfırla</button>
-            <button id="reset-all" type="button">Tüm haritaları sıfırla</button>
+            <button id="reset-edits" type="button" data-t>Reset this map</button>
+            <button id="reset-all" type="button" data-t>Reset all maps</button>
           </span>
         </div>
 
-        <details id="more">
-          <summary>Mapillary token (isteğe bağlı, diğer şehirler için)</summary>
-          <form id="token-form">
-            <input id="token" type="password" placeholder="Mapillary client token" autocomplete="off" />
-            <button type="submit">Kaydet</button>
-          </form>
-          <p class="hint" id="token-state"></p>
-        </details>
+          <div class="setting">
+            <label for="pace" data-t>Movement speed</label>
+            <input id="pace" type="range" min="0.75" max="3" step="0.25" />
+            <span id="pace-value"></span>
+          </div>
+          <label class="setting">
+            <input id="align" type="checkbox" />
+            <span data-t>Align the blocks with the streets</span>
+          </label>
+          <p class="hint" id="align-state"></p>
 
-        <p class="credits">
-          Amsterdam: panoramalar <a href="https://api.data.amsterdam.nl/panorama/" target="_blank" rel="noopener">Gemeente Amsterdam</a> açık verisi ·
-          yükseklik <a href="https://www.ahn.nl" target="_blank" rel="noopener">AHN</a> (PDOK) ·
-          bina sınırları <a href="https://3dbag.nl" target="_blank" rel="noopener">3D BAG</a>, CC BY 4.0 ·
-          Türkiye: <a href="https://panoramax.fr" target="_blank" rel="noopener">Panoramax</a> katkıcıları, CC BY-SA 4.0 ·
-          Yollar/su: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıcıları,
+          <details class="more" open>
+            <summary data-t>Google Street View (optional, sharper photos)</summary>
+            <p class="hint lead" data-t>The game starts with free street photos. With your own Google Maps key (Map Tiles API enabled) almost every street on Earth opens up, in much sharper photos.</p>
+            <label class="setting">
+              <input id="google-on" type="checkbox" />
+              <span data-t>Use Google Street View</span>
+            </label>
+            <form id="google-form" class="key-form">
+              <input id="google-key" type="password" placeholder="Google Maps API key" autocomplete="off" />
+              <button type="submit" data-t>Save</button>
+            </form>
+            <p class="hint" id="google-state"></p>
+            <p class="hint" id="google-usage"></p>
+            <form id="google-cap-form" class="key-form">
+              <input id="google-cap" type="number" min="1" step="1000" autocomplete="off" />
+              <button type="submit" data-t>Save</button>
+            </form>
+            <p class="hint" data-t>Google gives the first 100,000 Street View tiles a month for free, then charges $2 per 1,000. Without a number above the game stops at 90,000 a month and goes on with the free photo sources. With one, it uses Google until that many tiles past the free ones have been paid for, all told, and after that only the free ones each month. A photo costs 32 tiles while walking, 64 more to sharpen when you stop, and 32 more for each neighbouring photo not yet loaded that is needed to mend the ground under the camera car. The counter only sees requests made from this browser; the exact figure is in the Google Cloud Console.</p>
+            <p class="hint"><a id="google-report" class="hidden" target="_blank" rel="noopener" data-t>Report a problem with this photo</a></p>
+          </details>
+
+          <p class="credits">
+          Amsterdam: panoramas, open data of <a href="https://api.data.amsterdam.nl/panorama/" target="_blank" rel="noopener">Gemeente Amsterdam</a> ·
+          elevation <a href="https://www.ahn.nl" target="_blank" rel="noopener">AHN</a> (PDOK) ·
+          building outlines <a href="https://3dbag.nl" target="_blank" rel="noopener">3D BAG</a>, CC BY 4.0 ·
+          Istanbul: <a href="https://panoramax.fr" target="_blank" rel="noopener">Panoramax</a> contributors, CC BY-SA 4.0 ·
+          Roads/water: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors,
           <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ·
-          Diğer: <a href="https://www.mlit.go.jp/plateau/" target="_blank" rel="noopener">PLATEAU</a>, GSI, Terrarium, Mapillary
+          Elsewhere: <a href="https://www.mlit.go.jp/plateau/" target="_blank" rel="noopener">PLATEAU</a>, GSI, Terrarium ·
+          Street View: © Google, shown with your own Map Tiles API key
         </p>
-      </div>
+        </div>
+        <button class="back" type="button" data-go="main" data-t>Back</button>
+      </section>
+
+      <div id="language"></div>
+      <div id="version">Street Craft 1.0</div>
+      <div id="notice">An experimental project.</div>
     </div>
 
+    <script>
+      // if the game cannot start, say so on the title screen instead of loading for ever
+      const failed = (what) => {
+        const line = document.getElementById('status-text'), play = document.getElementById('play');
+        if (line && play && play.disabled && !window.game) line.textContent = `Could not start: ${what}`;
+      };
+      addEventListener('error', (e) => failed(e.message || 'an error'));
+      addEventListener('unhandledrejection', (e) => failed((e.reason && e.reason.message) || 'an error'));
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

@@ -127,6 +127,17 @@ const synth = {
     tone({ from: 660, to: 660, dur: 0.12, gain: 0.22, type: 'triangle' });
     setTimeout(() => tone({ from: 990, to: 990, dur: 0.22, gain: 0.22, type: 'triangle' }), 120);
   },
+  // a portal taking hold: a hollow drone that climbs for as long as it takes
+  portal: (seconds = 4) => {
+    tone({ from: 70, to: 210, dur: seconds, gain: 0.3, type: 'sawtooth' });
+    tone({ from: 104, to: 330, dur: seconds, gain: 0.16, type: 'triangle' });
+    burst({ dur: seconds, freq: 300, type: 'bandpass', q: 2.5, gain: 0.22, sweep: 2600 });
+  },
+  // and letting go on the other side
+  travel: () => {
+    tone({ from: 300, to: 46, dur: 1.4, gain: 0.34, type: 'sawtooth' });
+    burst({ dur: 1.6, freq: 2400, type: 'bandpass', q: 1.2, gain: 0.3, sweep: 180 });
+  },
 };
 
 // ---------------------------------------------------------------- sound pack

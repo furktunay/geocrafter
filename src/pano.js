@@ -2,13 +2,13 @@
 // projection (texture + pose + depth cube map) up to date for two cross-fading slots.
 import * as THREE from 'three';
 import { SOLID, B } from './blocks.js';
-import { photoProfile, groundMatch } from './skyline.js';
+import { photoProfile, groundMatch, smearOutline } from './skyline.js';
+import { PATCH_TOP } from './materials.js';
 
 const CELL = 0.005; // degrees per search cell (~500 m; small enough to stay under the API's result cap)
 const DEFAULT_HEIGHT = 2.0; // camera height above the ground when nothing better is known
 const SURVEY_HEIGHT = 2.4; // same, for survey vehicles, until measured from their own photos
-const CALIB_KEY = 'plateaucraft:calib:v1';
-export const TOKEN_KEY = 'plateaucraft:mapillary-token';
+const CALIB_KEY = 'plateaucraft:calib:v2'; // v1 kept headings and offsets against north; the grid may be turned now
 const DEPTH_SIZE = 1024;
 const HD_MAX = 8192; // widest panorama texture kept on the GPU (8000 x 4000 is ~128 MB)
 const MASK = 27; // degrees below the horizon where a survey vehicle starts to cover the ground
@@ -108,70 +108,23 @@ export class AmsterdamProvider {
   }
 }
 
-// Needs the user's own (free) client token; it is sent in a header, never in the URL.
-export class MapillaryProvider {
-  constructor(token) {
-    this.name = 'Mapillary';
-    this.token = token;
-  }
-
-  async search(w, s, e, n) {
-    const fields = 'id,computed_geometry,geometry,computed_compass_angle,compass_angle,computed_rotation,thumb_2048_url,thumb_original_url,sequence,captured_at,creator,width';
-    const url = `https://graph.mapillary.com/images?fields=${fields}&bbox=${w},${s},${e},${n}&is_pano=true&limit=1000`;
-    const r = await fetch(url, { headers: { Authorization: `OAuth ${this.token}` } });
-    if (!r.ok) throw new Error(r.status === 400 || r.status === 401 ? 'Mapillary token geçersiz' : `Mapillary HTTP ${r.status}`);
-    const out = [];
-    for (const f of (await r.json()).data || []) {
-      const g = f.computed_geometry || f.geometry;
-      if (!g || !f.thumb_2048_url) continue;
-      out.push({
-        id: `m${f.id}`,
-        provider: this.name,
-        lon: g.coordinates[0],
-        lat: g.coordinates[1],
-        heading: f.computed_compass_angle ?? f.compass_angle ?? 0,
-        rot: f.computed_rotation ? mapillaryRotation(f.computed_rotation) : null,
-        seq: f.sequence,
-        date: f.captured_at ? new Date(f.captured_at).toISOString().slice(0, 10) : '',
-        author: f.creator?.username || '',
-        width: f.width || 0,
-        sd: f.thumb_2048_url,
-        hd: f.thumb_original_url,
-      });
-    }
-    return out;
-  }
-}
-
-// OpenSfM angle-axis (world ENU -> camera, x right / y down / z forward) to our frames:
-// block world (x east, y up, z south) -> panorama (x right, y up, image centre at -z).
-// Returned row-major, ready for Matrix3.set().
-export function mapillaryRotation([rx, ry, rz]) {
-  const th = Math.hypot(rx, ry, rz);
-  let R = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-  if (th > 1e-9) {
-    const x = rx / th, y = ry / th, z = rz / th;
-    const c = Math.cos(th), s = Math.sin(th), t = 1 - c;
-    R = [t * x * x + c, t * x * y - s * z, t * x * z + s * y, t * x * y + s * z, t * y * y + c, t * y * z - s * x, t * x * z - s * y, t * y * z + s * x, t * z * z + c];
-  }
-  // M = F R E with E: (x, y, z) -> (east, north, up) = (x, -z, y) and F: (xc, yc, zc) -> (xc, -yc, -zc)
-  const col = (k) => [R[k], R[k + 3], R[k + 6]]; // column k of R
-  const e = col(0), nn = col(1), u = col(2);
-  // R E has columns [e, u, -n]
-  const m = [e[0], u[0], -nn[0], e[1], u[1], -nn[1], e[2], u[2], -nn[2]];
-  return [m[0], m[1], m[2], -m[3], -m[4], -m[5], -m[6], -m[7], -m[8]];
-}
-
 // ---------------------------------------------------------------- manager
 
 const ease = (t) => t * t * (3 - 2 * t);
 const angle = (a, b) => Math.abs(((a - b + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+// What counts as one survey when choosing the next step: the run, or the month it was driven in
+// for sources that tell.
+const era = (n) => n.epoch || n.seq;
 
 // Ground under the capturing vehicle. A 360 camera always sees whatever carries it; the same
 // paving is in plain view from the panoramas taken a few metres before and after. For every
-// direction below the mask this finds the point on the ground and looks it up in those
-// neighbours (whichever sees it from outside its own masked area, the closer one weighing more).
-// Output rows run from straight down (v = 0) to -20 degrees (v = 1); alpha = how valid it is.
+// direction below this photo's own vehicle this finds the point on the ground and looks it up in
+// those neighbours (whichever sees it from outside its own vehicle, the closer one weighing more).
+// Every photo has its own frame (uR*: world -> photo) and its own outline of what carries it
+// (uE*: degrees below the horizon / 90, per direction in that frame). The ground is level across
+// the street and may rise or fall along it, towards each neighbour separately (uSlope).
+// Output rows run from straight down (v = 0) to PATCH_TOP (v = 1), in this photo's frame;
+// alpha = how valid it is, and zero above this photo's vehicle.
 const PATCH_VERT = /* glsl */ `
 varying vec2 vUv;
 void main() {
@@ -182,34 +135,83 @@ void main() {
 const PATCH_FRAG = /* glsl */ `
 uniform sampler2D uN1;
 uniform sampler2D uN2;
+uniform sampler2D uN3;
+uniform sampler2D uE0;
+uniform sampler2D uE1;
+uniform sampler2D uE2;
+uniform sampler2D uE3;
+uniform mat3 uR0;
+uniform mat3 uR1;
+uniform mat3 uR2;
+uniform mat3 uR3;
 uniform vec3 uO1; // neighbour camera relative to this one (world axes)
 uniform vec3 uO2;
-uniform vec2 uUse;
+uniform vec3 uO3;
+uniform vec3 uUse;
+uniform vec2 uM1; // how far above its vehicle's outline a neighbour starts to count, and counts fully (radians)
+uniform vec2 uM2;
+uniform vec2 uM3;
 uniform float uH; // this camera's height above its ground
+uniform vec2 uAxis; // along the street: the way to the first neighbour (unit, x and z)
+uniform vec2 uSlope; // rise per metre towards the first neighbour, and away from it
 varying vec2 vUv;
-const float MASK = ${(-MASK * Math.PI / 180).toFixed(5)};
+const float TOP = ${PATCH_TOP.toFixed(7)};
 
-vec4 seenFrom(sampler2D tex, vec3 o, vec3 p) {
+// elevation at which a photo's own vehicle begins, in the direction of image column u
+float vehicle(sampler2D outline, float u) {
+  return -texture(outline, vec2(u, 0.5)).r * 1.5707963;
+}
+
+// -> colour times weight, weight. The nearest neighbour that sees the spot all but decides it:
+// averaging two views that do not quite agree only blurs both. The last argument collects how
+// well the spot is seen at all.
+vec4 seenFrom(sampler2D tex, sampler2D outline, vec2 margin, mat3 rot, vec3 o, vec3 p, inout float seen) {
   vec3 v = p - o;
   float d = length(v);
-  vec3 dir = v / d;
-  float el = asin(dir.y);
-  float ok = smoothstep(MASK + 0.01, MASK + 0.09, el); // outside that photo's own vehicle
+  vec3 dir = rot * (v / d);
+  float el = asin(clamp(dir.y, -1.0, 1.0));
   vec2 uv = vec2(atan(dir.x, -dir.z) * 0.15915494 + 0.5, el * 0.31830989 + 0.5);
-  return vec4(texture(tex, uv).rgb * ok / (d * d), ok / (d * d));
+  float ok = smoothstep(margin.x, margin.y, el - vehicle(outline, uv.x)); // outside that photo's own vehicle
+  seen = max(seen, ok * min(1.0, 420.0 / (d * d)));
+  float near = 100.0 / (d * d);
+  float w = ok * near * near * near;
+  return vec4(texture(tex, uv).rgb * w, w);
 }
 
 void main() {
   float az = (vUv.x - 0.5) * 6.2831853;
-  float el = mix(-1.5707963, -0.3490659, vUv.y);
-  vec3 dir = vec3(sin(az) * cos(el), sin(el), -cos(az) * cos(el));
-  vec3 p = dir * (uH / -dir.y); // where this ray meets the ground
-  vec4 a = uUse.x > 0.5 ? seenFrom(uN1, uO1, p) : vec4(0.0);
-  vec4 b = uUse.y > 0.5 ? seenFrom(uN2, uO2, p) : vec4(0.0);
-  float w = a.a + b.a;
-  gl_FragColor = w > 1e-7 ? vec4((a.rgb + b.rgb) / w, clamp(w * 260.0, 0.0, 1.0)) : vec4(0.0);
+  float el = mix(-1.5707963, TOP, vUv.y);
+  vec3 dir = transpose(uR0) * vec3(sin(az) * cos(el), sin(el), -cos(az) * cos(el));
+  float along = dot(dir.xz, uAxis);
+  float drop = (along >= 0.0 ? uSlope.x : -uSlope.y) * along - dir.y; // how fast the ray nears the ground
+  vec4 a = vec4(0.0);
+  vec4 b = vec4(0.0);
+  vec4 c = vec4(0.0);
+  float seen = 0.0;
+  if (drop > 0.02) {
+    vec3 p = dir * (uH / drop); // where this ray meets the ground
+    if (uUse.x > 0.5) a = seenFrom(uN1, uE1, uM1, uR1, uO1, p, seen);
+    if (uUse.y > 0.5) b = seenFrom(uN2, uE2, uM2, uR2, uO2, p, seen);
+    if (uUse.z > 0.5) c = seenFrom(uN3, uE3, uM3, uR3, uO3, p, seen);
+  }
+  float w = a.a + b.a + c.a;
+  // comes in from two degrees above this photo's own vehicle
+  float mine = smoothstep(0.035, -0.026, el - vehicle(uE0, vUv.x));
+  gl_FragColor = w > 1e-9 ? vec4((a.rgb + b.rgb + c.rgb) / w, seen * mine) : vec4(0.0);
 }
 `;
+
+// A vehicle outline for the patch shader: `below(u)` = degrees below the horizon at image
+// column u (0..1).
+function outlineTexture(below) {
+  const N = 256, data = new Uint8Array(N);
+  for (let i = 0; i < N; i++) data[i] = Math.round(THREE.MathUtils.clamp(below((i + 0.5) / N) / 90, 0, 1) * 255);
+  const tex = new THREE.DataTexture(data, N, 1, THREE.RedFormat, THREE.UnsignedByteType);
+  tex.minFilter = tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.needsUpdate = true;
+  return tex;
+}
 
 // Free a panorama texture and, for the full-resolution ones, the decoded bitmap behind it.
 function drop(tex) {
@@ -243,6 +245,7 @@ export class PanoManager {
     this.searchAt = 0;
     this.switchAt = 0;
     this.onChange = null;
+    this.pace = 1; // how briskly the camera travels between photos (set from the options)
     this.loader = new THREE.TextureLoader();
     this.prefetchAt = 0;
     this.images = new Map(); // node id -> Promise<texture>, a few panoramas loaded ahead
@@ -253,7 +256,10 @@ export class PanoManager {
     // seq: manual heading/height per sequence, pano: manual position per image, auto: solved poses
     this.calib = { seq: {}, pano: {}, auto: {} };
     try {
-      Object.assign(this.calib, JSON.parse(localStorage.getItem(CALIB_KEY) || '{}'));
+      const saved = localStorage.getItem(CALIB_KEY);
+      if (saved) Object.assign(this.calib, JSON.parse(saved));
+      // from before the grid could turn: camera heights still hold, poses do not
+      else Object.assign(this.calib.seq, (JSON.parse(localStorage.getItem('plateaucraft:calib:v1') || '{}').seq) || {});
     } catch (e) {
       console.warn('calibration data unreadable', e);
     }
@@ -264,9 +270,20 @@ export class PanoManager {
     ];
     this.patchOn = u.uPatchOn.value;
 
+    // what carries the camera: a survey vehicle from MASK degrees down, or nothing at all
+    this.outlines = { survey: outlineTexture(() => MASK), none: outlineTexture(() => 90) };
+
     // one pass that rebuilds the ground under the capturing vehicle from two neighbouring photos
     this.patchMaterial = new THREE.ShaderMaterial({
-      uniforms: { uN1: { value: null }, uN2: { value: null }, uO1: { value: new THREE.Vector3() }, uO2: { value: new THREE.Vector3() }, uUse: { value: new THREE.Vector2() }, uH: { value: 2 } },
+      uniforms: {
+        uN1: { value: null }, uN2: { value: null }, uN3: { value: null },
+        uE0: { value: null }, uE1: { value: null }, uE2: { value: null }, uE3: { value: null },
+        uR0: { value: new THREE.Matrix3() }, uR1: { value: new THREE.Matrix3() }, uR2: { value: new THREE.Matrix3() }, uR3: { value: new THREE.Matrix3() },
+        uO1: { value: new THREE.Vector3() }, uO2: { value: new THREE.Vector3() }, uO3: { value: new THREE.Vector3() },
+        uUse: { value: new THREE.Vector3() }, uH: { value: 2 },
+        uM1: { value: new THREE.Vector2() }, uM2: { value: new THREE.Vector2() }, uM3: { value: new THREE.Vector2() },
+        uAxis: { value: new THREE.Vector2(1, 0) }, uSlope: { value: new THREE.Vector2() },
+      },
       vertexShader: PATCH_VERT,
       fragmentShader: PATCH_FRAG,
       depthTest: false,
@@ -279,16 +296,16 @@ export class PanoManager {
 
     // where one can go from here: chevrons on the ground, like a street-view viewer
     const shape = new THREE.Shape();
-    [[-0.62, -0.3], [0, 0.34], [0.62, -0.3], [0.62, -0.62], [0, 0.02], [-0.62, -0.62]].forEach(([x, y], k) => (k ? shape.lineTo(x, y) : shape.moveTo(x, y)));
+    [[-0.5, -0.2], [0, 0.26], [0.5, -0.2], [0.5, -0.38], [0, 0.08], [-0.5, -0.38]].forEach(([x, y], k) => (k ? shape.lineTo(x, y) : shape.moveTo(x, y)));
     const chevron = new THREE.ShapeGeometry(shape);
     chevron.rotateX(-Math.PI / 2); // lie flat, pointing north
     this.arrows = new THREE.Group();
     this.arrowMeshes = [];
     for (let k = 0; k < 6; k++) {
       // drawn over the ground whatever its exact height: the measured surface is never quite flat
-      const edge = new THREE.Mesh(chevron, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45, depthWrite: false, depthTest: false }));
-      edge.scale.setScalar(1.18);
-      const face = new THREE.Mesh(chevron, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false, depthTest: false }));
+      const edge = new THREE.Mesh(chevron, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false, depthTest: false }));
+      edge.scale.setScalar(1.12);
+      const face = new THREE.Mesh(chevron, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false, depthTest: false }));
       face.renderOrder = 1; // after its own outline
       const g = new THREE.Group();
       g.add(edge, face);
@@ -299,9 +316,9 @@ export class PanoManager {
     }
     scene.add(this.arrows);
 
-    const ring = new THREE.RingGeometry(0.42, 0.62, 24);
+    const ring = new THREE.RingGeometry(0.5, 0.6, 32);
     ring.rotateX(-Math.PI / 2);
-    this.markers = new THREE.InstancedMesh(ring, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide }), 400);
+    this.markers = new THREE.InstancedMesh(ring, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.32, side: THREE.DoubleSide }), 400);
     this.markers.count = 0;
     this.markers.frustumCulled = false;
     this.markers.renderOrder = 3;
@@ -312,7 +329,7 @@ export class PanoManager {
   // ---- pose
 
   seqCalib(node) {
-    return this.calib.seq[node.seq] || { heading: 0, height: node.exact ? SURVEY_HEIGHT : DEFAULT_HEIGHT };
+    return this.calib.seq[node.seq] || { heading: 0, height: node.height || (node.exact ? SURVEY_HEIGHT : DEFAULT_HEIGHT) };
   }
 
   // Panorama centre in world coordinates (needs node.sy, the ground surface height under it).
@@ -367,11 +384,17 @@ export class PanoManager {
     const node = slot.node;
     this.unbury(node);
     this.center(node, slot.pos);
-    if (node.rot) slot.rot.set(...node.rot);
-    else slot.rot.setFromMatrix4(new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(node.heading)));
-    const extra = this.seqCalib(node).heading;
-    if (extra) slot.rot.multiply(new THREE.Matrix3().setFromMatrix4(new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(extra))));
+    this.rotOf(node, slot.rot);
     slot.depthVersion = -1;
+  }
+
+  // World direction -> the panorama's own frame (+y up, image centre at -z).
+  rotOf(node, out = new THREE.Matrix3()) {
+    if (node.rot) out.set(...node.rot);
+    else out.setFromMatrix4(new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(node.heading)));
+    const extra = this.seqCalib(node).heading;
+    if (extra) out.multiply(new THREE.Matrix3().setFromMatrix4(new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(extra))));
+    return out;
   }
 
   // ---- search
@@ -407,6 +430,17 @@ export class PanoManager {
     for (const n of found) {
       if (this.nodes.has(n.id)) continue;
       [n.x0, n.z0] = this.proj.lonLatToBlock(n.lon, n.lat);
+      // Sources speak of compass directions; in here every direction is against the block grid,
+      // which may be turned to the streets (Projection.turn). Converted once, on the way in.
+      const turn = this.proj.turn || 0;
+      if (turn) {
+        n.heading = (((n.heading - turn) % 360) + 360) % 360;
+        if (n.rot) {
+          // (world -> photo) for a north-up world, times (grid -> north-up)
+          const t = THREE.MathUtils.degToRad(-turn), c = Math.cos(t), sn = Math.sin(t), r = n.rot;
+          n.rot = [r[0] * c - r[2] * sn, r[1], r[0] * sn + r[2] * c, r[3] * c - r[5] * sn, r[4], r[3] * sn + r[5] * c, r[6] * c - r[8] * sn, r[7], r[6] * sn + r[8] * c];
+        }
+      }
       n.gps = n.heading;
       const known = this.calib.auto[n.id];
       if (n.exact) {
@@ -430,7 +464,7 @@ export class PanoManager {
   // Two neighbouring panoramas see the same paving. Project both onto the ground for a trial
   // height and compare: only the true height makes the two pictures of the pavement coincide.
   missionHeight(node) {
-    if (!node.exact || this.calib.seq[node.seq]) return Promise.resolve();
+    if (!node.exact || node.height || this.calib.seq[node.seq]) return Promise.resolve();
     let p = this.heights.get(node.seq);
     if (!p) {
       p = this.measureHeight(node).then((h) => {
@@ -452,12 +486,13 @@ export class PanoManager {
       .sort((p, q) => p[1] - q[1])
       .slice(0, 3);
     const luma = async (n) => {
+      const src = await this.urlOf(n, 'sd');
       const img = await new Promise((resolve, reject) => {
         const el = new Image();
         el.crossOrigin = 'anonymous';
         el.onload = () => resolve(el);
         el.onerror = reject;
-        el.src = n.sd;
+        el.src = src;
       });
       const w = 2000, h = 1000;
       const cv = document.createElement('canvas');
@@ -475,7 +510,9 @@ export class PanoManager {
       const la = await luma(a);
       for (const [b] of mates) {
         const lb = await luma(b);
-        const r = groundMatch(la, lb, b.x0 - a.x0, b.z0 - a.z0);
+        // the step from a to b as the photos see it: they are level, their centre column faces a.heading
+        const dx = b.x0 - a.x0, dz = b.z0 - a.z0, t = THREE.MathUtils.degToRad(a.heading), c = Math.cos(t), sn = Math.sin(t);
+        const r = groundMatch(la, lb, dx * c + dz * sn, dz * c - dx * sn);
         if (r) found.push(r.height);
       }
     } catch (e) {
@@ -497,7 +534,7 @@ export class PanoManager {
     let best = null, bd = max;
     for (const n of this.list) {
       if (n.bad) continue;
-      const d = Math.hypot(n.x0 - x, n.z0 - z) + (stay && n.seq !== stay ? 3 : 0);
+      const d = Math.hypot(n.x0 - x, n.z0 - z) + (stay && era(n) !== stay ? 3 : 0);
       if (d < bd) {
         bd = d;
         best = n;
@@ -532,7 +569,7 @@ export class PanoManager {
   imageOf(node) {
     let p = this.images.get(node.id);
     if (p) return p;
-    p = this.loadTexture(node.sd);
+    p = this.urlOf(node, 'sd').then((url) => this.loadTexture(url));
     p.catch(() => this.images.delete(node.id));
     this.images.set(node.id, p);
     // keep it small: the oldest pictures that nothing is showing or waiting for go first
@@ -555,10 +592,16 @@ export class PanoManager {
     for (const node of this.list
       .filter((q) => !q.bad && (q.x0 - px) ** 2 + (q.z0 - pz) ** 2 < 18 * 18)
       .sort((p, q) => (p.x0 - px) ** 2 + (p.z0 - pz) ** 2 - ((q.x0 - px) ** 2 + (q.z0 - pz) ** 2))) {
-      if (n++ >= 3) break;
+      if (n++ >= (node.picture ? 1 : 3)) break;
       if (!this.images.has(node.id)) this.imageOf(node).catch(() => {});
       this.groundOf(node);
     }
+  }
+
+  // Where a panorama's picture is: a plain address for most sources, something the source puts
+  // together first for those that serve a panorama in pieces.
+  urlOf(node, which) {
+    return node.picture ? node.picture(which) : Promise.resolve(node[which]);
   }
 
   loadTexture(url) {
@@ -613,7 +656,7 @@ export class PanoManager {
       const d = Math.hypot(dx, dz);
       if (d < 2.5 || d > 70) continue;
       // another survey year at the same spot is a worse step than staying with this one
-      cand.push({ node: n, d, az: Math.atan2(dx, -dz), rank: d + (n.seq === node.seq ? 0 : 2.5) });
+      cand.push({ node: n, d, az: Math.atan2(dx, -dz), rank: d + (era(n) === era(node) ? 0 : 2.5) });
     }
     cand.sort((a, b) => a.rank - b.rank);
     const out = [];
@@ -621,7 +664,7 @@ export class PanoManager {
       if (c.d > Math.max(13, cand[0].d * 2.4) || out.length >= 6) break;
       if (out.some((o) => angle(o.az, c.az) < 0.85)) continue;
       // whoever took the photos went from one frame to the next; any other step needs a clear view
-      const driven = c.node.run !== undefined && c.node.run === node.run && Math.abs(c.node.order - node.order) <= 3;
+      const driven = (c.node.run !== undefined && c.node.run === node.run && Math.abs(c.node.order - node.order) <= 3) || (node.near !== undefined && node.near.has(c.node.id));
       if (driven || this.clearBetween(node, c.node)) out.push(c);
     }
     node.links = out;
@@ -657,39 +700,45 @@ export class PanoManager {
     return best;
   }
 
-  // The link whose chevron or target ring a ray from the viewer points at: { link, t } or null.
-  // `d` is a unit direction as [x, y, z].
-  linkAt(o, d) {
-    const node = this.snapped;
-    const slot = node && this.slotOf(node);
-    if (!slot || d[1] > -0.03) return null;
-    const ground = slot.pos.y - this.seqCalib(node).height;
-    const t = (ground - o.y) / d[1];
-    const hx = o.x + d[0] * t, hz = o.z + d[2] * t;
-    let best = null, bd = Infinity;
-    for (const a of this.arrowMeshes) {
-      if (!a.group.visible || !a.link) continue;
-      const n = a.link.node;
-      const off = this.calib.pano[n.id] || n.fix || [0, 0];
-      const near = Math.min(Math.hypot(hx - a.group.position.x, hz - a.group.position.z), Math.hypot(hx - n.x0 - off[0], hz - n.z0 - off[1]) - 0.1);
-      if (near < 1 && near < bd) {
-        bd = near;
-        best = a.link;
-      }
-    }
-    return best && { link: best, t };
-  }
-
   // Replace whatever carried the camera with ground. Survey panoramas get the real paving, as
   // the panoramas taken just before and after saw it. The others (poses too rough for that) get
   // a soft fill in the colours of the ground around the feet.
-  async buildPatch(slot, node) {
+  // `stay`: the player has stopped here, so pictures that are not loaded yet may be fetched.
+  async buildPatch(slot, node, stay = false) {
     if (!node.exact) return this.blurFill(slot, FOOT);
-    const links = this.links(node).filter((l) => l.node.exact && l.d < 9.5);
-    if (!links.length) return this.blurFill(slot, MASK);
+    const own = this.outline(node, slot.tex);
+    if (!own) return; // nothing was painted out of this picture: nothing to mend
+    let links = this.links(node).filter((l) => l.node.exact && l.d < (node.picture ? 16 : 9.5));
+    if (node.epoch) {
+      // photos of the same drive first: the light and the parked cars match
+      const same = links.filter((l) => l.node.epoch === node.epoch);
+      if (same.length) links = same;
+    }
+    if (!links.length) return node.picture ? undefined : this.blurFill(slot, MASK);
     const first = links[0];
     const second = links.slice(1).sort((a, b) => angle(b.az, first.az) - angle(a.az, first.az))[0];
-    const pick = second ? [first, second] : [first];
+    let pick = second ? [first, second] : [first];
+    if (node.picture) {
+      // A smeared-out car leaves a long tail behind it, longer than the step to the next photo:
+      // the photo ahead looks at it through its own tail. The photo two steps back sees it clearly.
+      const back = THREE.MathUtils.degToRad(node.heading + 180);
+      const behind = pick.find((l) => angle(l.az, back) < 0.7);
+      const far = behind && this.links(behind.node)
+        .filter((l) => l.node !== node && l.node.exact && l.node.epoch === node.epoch && l.d < 16 && angle(l.az, behind.az) < 0.7)[0];
+      if (far) pick.push({ node: far.node });
+    }
+    if (node.picture && !stay) {
+      // A picture put together from pieces costs many requests: use the neighbours that are
+      // loaded anyway now, and ask for the others only once the player has stopped here.
+      const have = pick.filter((l) => this.images.has(l.node.id));
+      if (have.length < pick.length) {
+        setTimeout(() => {
+          if (slot.node === node) this.buildPatch(slot, node, true);
+        }, 1500);
+      }
+      if (!have.length) return;
+      pick = have;
+    }
     try {
       const tex = await Promise.all(pick.map((l) => Promise.all([this.imageOf(l.node), this.groundOf(l.node), this.missionHeight(l.node)]).then((r) => r[0])));
       if (slot.node !== node) return;
@@ -698,11 +747,40 @@ export class PanoManager {
       }
       const u = this.patchMaterial.uniforms;
       const mine = this.center(node);
-      u.uN1.value = tex[0];
-      u.uO1.value.copy(this.center(pick[0].node)).sub(mine);
-      u.uN2.value = tex[1] || tex[0];
-      if (tex[1]) u.uO2.value.copy(this.center(pick[1].node)).sub(mine);
-      u.uUse.value.set(1, tex[1] ? 1 : 0);
+      // Where a source gives its cameras' altitudes, those say how the street rises between two
+      // photos; the block terrain underneath only knows whole metres.
+      const offset = (n, out) => {
+        out.copy(this.center(n)).sub(mine);
+        if (node.alt != null && n.alt != null) out.y = n.alt - node.alt;
+        return out;
+      };
+      const o1 = offset(pick[0].node, u.uO1.value);
+      const o2 = pick[1] ? offset(pick[1].node, u.uO2.value) : null;
+      if (pick[2]) offset(pick[2].node, u.uO3.value);
+      const l1 = Math.hypot(o1.x, o1.z) || 1;
+      u.uAxis.value.set(o1.x / l1, o1.z / l1);
+      let rise = 0, back = 0;
+      if (node.alt != null) {
+        const steep = (v) => THREE.MathUtils.clamp(v, -0.12, 0.12);
+        rise = steep(o1.y / l1);
+        back = -rise; // one slope right through, unless a neighbour on the other side says otherwise
+        const t2 = o2 ? o2.x * u.uAxis.value.x + o2.z * u.uAxis.value.y : 0;
+        if (t2 < -3) back = steep(o2.y / -t2);
+      }
+      u.uSlope.value.set(rise, back);
+      // a fixed angle is only roughly where a survey vehicle ends: keep well clear of it. An
+      // outline read off the picture is already drawn generously.
+      const margin = (n, out) => (n.picture ? out.set(0, 0.035) : out.set(0.01, 0.09));
+      u.uE0.value = own;
+      [[u.uN1, u.uE1, u.uR1, u.uM1], [u.uN2, u.uE2, u.uR2, u.uM2], [u.uN3, u.uE3, u.uR3, u.uM3]].forEach(([image, outline, rot, clear], k) => {
+        const n = (pick[k] || pick[0]).node, t = tex[k] || tex[0]; // an unused place repeats the first: it must still hold a texture
+        image.value = t;
+        outline.value = this.outline(n, t) || this.outlines.none;
+        this.rotOf(n, rot.value);
+        margin(n, clear.value);
+      });
+      this.rotOf(node, u.uR0.value);
+      u.uUse.value.set(1, pick[1] ? 1 : 0, pick[2] ? 1 : 0);
       u.uH.value = this.seqCalib(node).height;
       const old = this.renderer.getRenderTarget();
       this.renderer.setRenderTarget(slot.patch);
@@ -711,8 +789,36 @@ export class PanoManager {
       slot.patchU.value = slot.patch.texture;
       slot.patched = true; // fades in (see update)
     } catch (e) {
-      if (slot.node === node) this.blurFill(slot, MASK);
+      if (slot.node === node && !node.picture) this.blurFill(slot, MASK);
     }
+  }
+
+  // Where a photo's own vehicle begins, per direction, as a texture for the patch shader
+  // (degrees below the horizon / 90). Survey vehicles: the same angle all round. Sources that
+  // smear their car out: read off the picture once (see smearOutline). Null: nothing to hide.
+  outline(node, tex) {
+    if (!node.picture) return this.outlines.survey;
+    if (node.outline !== undefined) return node.outline;
+    const img = tex && tex.image;
+    if (!img || !img.width || (typeof ImageBitmap !== 'undefined' && img instanceof ImageBitmap)) return this.outlines.survey; // not readable now: assume the usual
+    const TOP = 10, cw = 1024, ch = Math.round((cw / 2) * ((90 - TOP) / 180));
+    if (!this.strip) {
+      this.strip = document.createElement('canvas');
+      this.strip.width = cw;
+      this.strip.height = ch;
+    }
+    const ctx = this.strip.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingQuality = 'high';
+    const y0 = img.height * (0.5 + TOP / 180);
+    ctx.drawImage(img, 0, y0, img.width, img.height - y0, 0, 0, cw, ch);
+    let edge = null;
+    try {
+      edge = smearOutline(ctx.getImageData(0, 0, cw, ch).data, cw, ch, TOP);
+    } catch (e) {
+      return this.outlines.survey; // image served without CORS headers
+    }
+    node.outline = edge ? outlineTexture((u) => edge[Math.min(cw - 1, Math.floor(u * cw))]) : null;
+    return node.outline;
   }
 
   // Soft fill for the bottom of a slot's panorama, from `from` degrees below the horizon down:
@@ -761,7 +867,7 @@ export class PanoManager {
     }
     const out = slot.fill.image.data;
     for (let y = 0; y < H; y++) {
-      const below = 90 - ((y + 0.5) / H) * 70; // row 0 is straight down, the last one 20 degrees below the horizon
+      const below = 90 - ((y + 0.5) / H) * (90 + THREE.MathUtils.radToDeg(PATCH_TOP)); // row 0 is straight down, the last one at the top of the patch
       const alpha = THREE.MathUtils.smoothstep(below, from, from + 6) * 255;
       const spread = Math.min(1, (90 - below) / 35); // every direction meets at the nadir: one colour there
       for (let x = 0; x < W; x++) {
@@ -832,7 +938,7 @@ export class PanoManager {
       best.bad = true;
       this.linkKey++;
     };
-    img.src = best.sd;
+    this.urlOf(best, 'sd').then((url) => (img.src = url), img.onerror);
   }
   // Swap in the full-resolution image once the viewer has stayed on a panorama for a moment.
   // It is decoded (and capped in size) off the main thread, then uploaded as a bitmap.
@@ -840,7 +946,7 @@ export class PanoManager {
     setTimeout(async () => {
       if (slot.node !== node) return;
       try {
-        const blob = await (await fetch(node.hd, { mode: 'cors' })).blob();
+        const blob = await (await fetch(await this.urlOf(node, 'hd'), { mode: 'cors' })).blob();
         if (slot.node !== node) return;
         const max = Math.min(HD_MAX, this.renderer.capabilities.maxTextureSize);
         const known = node.width > 0 && node.width <= max;
@@ -862,7 +968,7 @@ export class PanoManager {
       } catch (e) {
         // the standard-definition image stays
       }
-    }, 600);
+    }, node.picture ? 1500 : 600); // a picture put together from pieces costs many requests: only for a real stop
   }
 
   release(idx) {
@@ -891,6 +997,19 @@ export class PanoManager {
     }
     const token = ++this.token;
     this.pending = node;
+    // While this picture loads and the camera travels, fetch the ones beyond it as well: with a
+    // direction key held down the next step should not have to wait for its picture.
+    if (snap && node.picture && this.current && this.current !== node) {
+      // the brisker the pace, the farther ahead: a picture takes about a second to put together
+      let from = this.current, at = node;
+      for (let ahead = this.pace >= 2.5 ? 3 : this.pace >= 1.25 ? 2 : 1; ahead > 0; ahead--) {
+        const on = this.linkToward(at, Math.atan2(at.x0 - from.x0, from.z0 - at.z0), 0.7);
+        if (!on) break;
+        if (!this.images.has(on.node.id)) this.imageOf(on.node).then((t) => this.renderer.initTexture(t)).catch(() => {});
+        from = at;
+        at = on.node;
+      }
+    }
     let tex;
     try {
       tex = await this.imageOf(node);
@@ -912,7 +1031,7 @@ export class PanoManager {
     const idx = this.active < 0 ? 0 : 1 - this.active;
     this.assign(idx, node, tex);
     if (this.active < 0) this.active = idx;
-    else this.fade = { to: idx, t: 0, dur: 0.45 };
+    else this.fade = { to: idx, t: 0, dur: Math.max(0.15, 0.45 / this.pace) };
     this.current = node;
     this.markersAt = 0;
     if (snap) this.startHop(node);
@@ -923,7 +1042,7 @@ export class PanoManager {
     this.snapped = null;
     const slot = this.slotOf(node);
     const far = slot ? this.camPos.distanceTo(slot.pos) : 0;
-    this.hop = { node, from: this.camPos.clone(), t: 0, dur: far > 60 ? 0.05 : THREE.MathUtils.clamp(0.3 + far * 0.03, 0.4, 0.9) };
+    this.hop = { node, from: this.camPos.clone(), t: 0, dur: far > 60 ? 0.05 : THREE.MathUtils.clamp(0.3 + far * 0.03, 0.4, 0.9) / this.pace };
   }
 
   // Let go of the camera (free walking).
@@ -1036,9 +1155,17 @@ export class PanoManager {
     }
     // standing in a panorama: have its neighbours ready, so the next step starts at once
     if (this.snapped && this.snapped !== this.warmed && !this.pending) {
-      this.warmed = this.snapped;
-      for (const l of this.links(this.snapped).slice(0, 3)) {
-        this.groundOf(l.node);
+      const from = this.warmed, here = this.snapped;
+      this.warmed = here;
+      let ready = this.links(here).slice(0, 3);
+      for (const l of ready) this.groundOf(l.node);
+      if (here.picture) {
+        // a picture put together from pieces costs many requests: only the one straight on is
+        // fetched now, the others when the player turns to them (see updateArrows)
+        const on = from && from !== here ? this.linkToward(here, Math.atan2(here.x0 - from.x0, from.z0 - here.z0), 0.7) : null;
+        ready = on ? [on] : [];
+      }
+      for (const l of ready) {
         if (!this.images.has(l.node.id)) this.imageOf(l.node).then((t) => this.renderer.initTexture(t)).catch(() => {});
       }
     }
@@ -1046,7 +1173,7 @@ export class PanoManager {
     // walking around: the nearest panorama takes over (with a little hysteresis)
     if (free && !this.pending && !this.fade && now - this.switchAt > 250) {
       this.switchAt = now;
-      const n = this.nearest(player.x, player.z, 150, this.current && this.current.seq);
+      const n = this.nearest(player.x, player.z, 150, this.current && era(this.current));
       if (n && n !== this.current) {
         const cur = this.current ? Math.hypot(this.current.x0 - player.x, this.current.z0 - player.z) : Infinity;
         if (Math.hypot(n.x0 - player.x, n.z0 - player.z) + 2 < cur) this.goTo(n, false);
@@ -1134,12 +1261,23 @@ export class PanoManager {
 
   // Chevrons on the ground around the viewer; the one the player faces (or points at) is
   // highlighted. `az`: compass direction the player looks in. Returns the link ahead.
-  updateArrows(az, show, pointed = null) {
+  updateArrows(az, show) {
     const node = this.snapped;
     const slot = node && this.slotOf(node);
     const links = show && slot ? this.links(node) : [];
     const ahead = links.length ? this.linkToward(node, az, 1.15) : null;
-    const lit = pointed || ahead;
+    const lit = ahead;
+    // a stitched panorama is fetched ahead once the player has looked its way for a moment
+    if (lit && lit.node.picture && !this.pending) {
+      const now = performance.now();
+      if (this.eyed !== lit.node) {
+        this.eyed = lit.node;
+        this.eyedAt = now;
+      } else if (now - this.eyedAt > 350) {
+        this.eyedAt = Infinity; // once per look
+        if (!this.images.has(lit.node.id)) this.imageOf(lit.node).then((t) => this.renderer.initTexture(t)).catch(() => {});
+      }
+    }
     this.arrowMeshes.forEach((a, k) => {
       const l = links[k];
       a.group.visible = !!l;
@@ -1148,8 +1286,8 @@ export class PanoManager {
       const r = Math.min(3.8, l.d * 0.72);
       a.group.position.set(slot.pos.x + Math.sin(l.az) * r, slot.pos.y - this.seqCalib(node).height + 0.09, slot.pos.z - Math.cos(l.az) * r);
       a.group.rotation.y = -l.az;
-      a.group.scale.setScalar(l === lit ? 1.1 : 0.85);
-      a.face.material.color.setHex(l === lit ? 0xffd23f : 0xffffff);
+      a.group.scale.setScalar(l === lit ? 0.95 : 0.8);
+      a.face.material.opacity = l === lit ? 0.85 : 0.4; // the lit one is only more solid, not coloured
     });
     return ahead;
   }

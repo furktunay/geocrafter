@@ -1,7 +1,7 @@
 {
-  "name": "plateau-craft",
+  "name": "street-craft",
   "version": "1.0.0",
-  "description": "Real-life voxel sandbox built from PLATEAU 3D city data",
+  "description": "A block game played inside real 360° street photos",
   "private": true,
   "type": "module",
   "scripts": {

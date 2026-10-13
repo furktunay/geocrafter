@@ -4,7 +4,9 @@
   --panel: rgba(18, 20, 26, 0.86);
   --line: rgba(255, 255, 255, 0.16);
   --accent: #ff5a4f;
+  --pixel: 'Jersey 15', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --font: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+  --gold: #ffd83d;
   --u: 2px; /* one interface pixel; raised on large screens */
 }
 
@@ -53,6 +55,17 @@ body {
 
 #underwater {
   background: rgba(30, 80, 190, 0.42);
+}
+
+/* the portal closing over the view: its 16-pixel picture across the whole screen */
+#portal-veil {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  image-rendering: pixelated;
 }
 
 #hurt {
@@ -198,9 +211,9 @@ body {
   font-style: normal;
   font-weight: 700;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
-  background: rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
   grid-row: 2;
 }
@@ -211,9 +224,9 @@ body {
 }
 
 #nav i.on {
-  color: #1a1407;
-  background: #ffd23f;
-  border-color: #000;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 /* ---- block-game status bars and hotbar. Sizes are in interface pixels (--u). */
@@ -338,27 +351,28 @@ body {
   background: rgba(16, 16, 16, 0.62);
 }
 
-/* The two windows are 284 units tall together; the unit follows the height there is, and a
-   window too short even for the smallest one scrolls instead of squeezing them. */
+/* The two windows and the catalogue's tabs are 362 units tall together; the unit follows the
+   height there is, and a window too short even for the smallest one scrolls instead of
+   squeezing them. */
 #inventory {
   --u: 2px;
   justify-content: safe center;
   overflow-y: auto;
 }
 
-@media (max-height: 589px) {
+@media (max-height: 739px) {
   #inventory {
     --u: 1.5px;
   }
 }
 
-@media (max-height: 444px) {
+@media (max-height: 557px) {
   #inventory {
     --u: 1px;
   }
 }
 
-@media (min-height: 880px) and (min-width: 700px) {
+@media (min-height: 1100px) and (min-width: 700px) {
   #inventory {
     --u: 3px;
   }
@@ -402,11 +416,6 @@ body {
   margin-top: calc(4 * var(--u));
 }
 
-#cat-grid {
-  max-height: calc(72 * var(--u));
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
 
 .mc-grid .mc-slot,
 .mc-armor i {
@@ -533,8 +542,7 @@ body.pack-xp #mc-xp-fill {
   image-rendering: pixelated;
 }
 
-body.pack-inventory .mc-window.bag,
-body.pack-chest .mc-window.catalog {
+body.pack-inventory .mc-window.bag {
   position: relative;
   width: calc(176 * var(--u));
   padding: 0;
@@ -552,22 +560,6 @@ body.pack-inventory .mc-window.bag {
   background-image: var(--pack-inventory);
 }
 
-/* the catalogue borrows a chest window: as many rows as it needs, then the sheet's bottom edge */
-body.pack-chest .mc-window.catalog {
-  height: calc((24 + 18 * var(--cat-rows)) * var(--u));
-  background-image: var(--pack-chest);
-}
-
-body.pack-chest .mc-window.catalog::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: calc(7 * var(--u));
-  background: var(--pack-chest) 0 calc(-215 * var(--u)) / calc(256 * var(--u)) calc(256 * var(--u)) no-repeat;
-}
-
 body.pack-inventory .bag .mc-top,
 body.pack-inventory .bag .mc-craft,
 body.pack-inventory .bag .mc-craft-row {
@@ -582,9 +574,7 @@ body.pack-inventory .bag #craft-hint {
 body.pack-inventory .bag .mc-armor,
 body.pack-inventory .bag #mc-doll,
 body.pack-inventory .bag .mc-grid,
-body.pack-inventory .bag h4,
-body.pack-chest .catalog .mc-grid,
-body.pack-chest .catalog h4 {
+body.pack-inventory .bag h4 {
   position: absolute;
   margin: 0;
 }
@@ -625,28 +615,14 @@ body.pack-inventory .bag #bar-grid {
   top: calc(141 * var(--u));
 }
 
-body.pack-chest .catalog h4 {
-  left: calc(8 * var(--u));
-  top: calc(6 * var(--u));
-}
-
-body.pack-chest .catalog #cat-grid {
-  left: calc(7 * var(--u));
-  top: calc(17 * var(--u));
-  max-height: none;
-  overflow: visible;
-}
-
 /* the sheet draws the slot frames itself */
 body.pack-inventory .bag .mc-slot,
-body.pack-inventory .bag .mc-armor i,
-body.pack-chest .catalog .mc-slot {
+body.pack-inventory .bag .mc-armor i {
   background: none;
   box-shadow: none;
 }
 
-body.pack-inventory .bag .mc-slot:hover,
-body.pack-chest .catalog .mc-slot:hover {
+body.pack-inventory .bag .mc-slot:hover {
   background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)) center / calc(16 * var(--u)) calc(16 * var(--u)) no-repeat;
 }
 
@@ -670,36 +646,135 @@ body.pack-chest .catalog .mc-slot:hover {
 
 /* ---- menu */
 
+/* ---- menu. Before the first game it is the title screen over a street photo; afterwards the
+   same menu pauses the game and the game shows through. Sizes are in interface pixels (--u). */
+
 #overlay {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(6, 8, 14, 0.5);
+  background: rgba(6, 8, 14, 0.55);
   backdrop-filter: blur(3px);
   overflow: auto;
-  padding: 20px;
+  padding: calc(10 * var(--u)) 16px calc(14 * var(--u));
+  text-shadow: var(--u) var(--u) 0 rgba(0, 0, 0, 0.75);
 }
 
-.panel {
-  width: min(680px, 100%);
-  padding: 26px 30px 20px;
-  background: var(--panel);
-  border: 2px solid #000;
-  outline: 2px solid var(--line);
+#title-bg {
+  display: none;
+  position: fixed;
+  inset: -4%;
+  background: url('./assets/title.jpg') center / cover;
+  filter: blur(1.5px) brightness(0.9);
+  animation: title-drift 70s ease-in-out infinite alternate;
+}
+
+#overlay.title {
+  background: #0b0d12;
+  backdrop-filter: none;
+}
+
+#overlay.title #title-bg {
+  display: block;
+}
+
+@keyframes title-drift {
+  from {
+    transform: scale(1.08) translateX(-3%);
+  }
+  to {
+    transform: scale(1.08) translateX(3%);
+  }
+}
+
+.screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(calc(248 * var(--u)), 100%);
+}
+
+.screen h2 {
+  margin: 0 0 calc(8 * var(--u));
+  font-size: calc(8 * var(--u));
+  font-weight: 400;
+}
+
+.sheet {
+  width: 100%;
+  max-height: 62vh;
+  overflow: auto;
+  padding: calc(8 * var(--u));
+  background: rgba(0, 0, 0, 0.62);
+  border-top: var(--u) solid rgba(0, 0, 0, 0.8);
+  border-bottom: var(--u) solid rgba(255, 255, 255, 0.14);
+  text-shadow: none;
   -webkit-user-select: text;
   user-select: text;
 }
 
-h1 {
-  margin: 0;
-  font-size: 40px;
-  letter-spacing: 0.1em;
-  line-height: 1;
+#logo {
+  position: relative;
+  width: min(calc(290 * var(--u)), 94vw);
+  margin-bottom: calc(18 * var(--u));
+  text-align: center;
 }
 
-h1 span {
-  color: var(--accent);
+#logo-art {
+  display: block;
+  width: 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 calc(3 * var(--u)) 0 rgba(0, 0, 0, 0.5)) drop-shadow(0 0 calc(10 * var(--u)) rgba(0, 0, 0, 0.35));
+}
+
+#logo-sub {
+  margin-top: calc(3 * var(--u));
+  font-size: calc(7 * var(--u));
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-shadow:
+    var(--u) 0 0 #000,
+    calc(-1 * var(--u)) 0 0 #000,
+    0 var(--u) 0 #000,
+    0 calc(-1 * var(--u)) 0 #000,
+    var(--u) calc(2 * var(--u)) 0 #000;
+}
+
+#splash {
+  position: absolute;
+  right: calc(-6 * var(--u));
+  bottom: calc(2 * var(--u));
+  transform-origin: center;
+  font-size: calc(7 * var(--u));
+  white-space: nowrap;
+  color: #ffff55;
+  text-shadow: var(--u) var(--u) 0 #3f3f15;
+  animation: splash 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes splash {
+  from {
+    transform: translateX(22%) rotate(-18deg) scale(1);
+  }
+  to {
+    transform: translateX(22%) rotate(-18deg) scale(1.07);
+  }
+}
+
+.menu {
+  display: grid;
+  gap: calc(4 * var(--u));
+  width: min(calc(200 * var(--u)), 100%);
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(4 * var(--u));
+  margin-top: calc(8 * var(--u));
 }
 
 h3 {
@@ -710,19 +785,13 @@ h3 {
   color: var(--dim);
 }
 
-.tagline {
-  margin: 10px 0 18px;
-  color: var(--dim);
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
 .hint {
   margin: 6px 0 0;
   color: var(--dim);
   font-size: 12px;
 }
 
+/* plain buttons (death screen, forms inside the sheets) */
 button {
   font: inherit;
   color: var(--ink);
@@ -742,8 +811,54 @@ button:disabled {
   cursor: default;
 }
 
-#play,
+/* stone buttons: a speckled grey face, lit on the top and left edges, shaded on the bottom */
+.menu button,
+.screen > .back {
+  height: calc(20 * var(--u));
+  padding: 0 calc(4 * var(--u));
+  font-size: calc(8 * var(--u));
+  color: #fff;
+  text-shadow: var(--u) var(--u) 0 #3a3a3a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background:
+    repeating-conic-gradient(rgba(255, 255, 255, 0.022) 0% 25%, rgba(0, 0, 0, 0.022) 0% 50%) 0 0 / calc(4 * var(--u)) calc(4 * var(--u)),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.04) 0 calc(3 * var(--u)), transparent calc(3 * var(--u)) calc(7 * var(--u))),
+    #717171;
+  border: var(--u) solid #000;
+  outline: none;
+  box-shadow:
+    inset var(--u) var(--u) 0 #a8a8a8,
+    inset calc(-1 * var(--u)) calc(-2 * var(--u)) 0 #4c4c4c;
+}
+
+.menu button:hover:not(:disabled),
+.menu button:focus-visible,
+.screen > .back:hover,
+.screen > .back:focus-visible {
+  background-color: #7c86b8;
+  border-color: #fff;
+  box-shadow:
+    inset var(--u) var(--u) 0 #bcc5ee,
+    inset calc(-1 * var(--u)) calc(-2 * var(--u)) 0 #555d8a;
+}
+
+.menu button:disabled {
+  opacity: 1;
+  color: #a0a0a0;
+  text-shadow: none;
+  background: #2c2c2c;
+  box-shadow: inset 0 0 0 var(--u) #3c3c3c;
+}
+
+.screen > .back {
+  width: min(calc(150 * var(--u)), 100%);
+  margin-top: calc(8 * var(--u));
+}
+
 #respawn {
+  min-width: 260px;
   padding: 13px;
   font-size: 18px;
   font-weight: 700;
@@ -752,16 +867,6 @@ button:disabled {
   color: #1a0a08;
 }
 
-#play {
-  width: 100%;
-  margin-top: 10px;
-}
-
-#respawn {
-  min-width: 260px;
-}
-
-#play:hover:not(:disabled),
 #respawn:hover {
   background: #ff7a70;
 }
@@ -769,16 +874,19 @@ button:disabled {
 #status {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--dim);
+  justify-content: center;
+  gap: calc(5 * var(--u));
+  margin-top: calc(4 * var(--u));
+  font-size: calc(5.5 * var(--u));
+  white-space: nowrap;
 }
 
 #bar {
-  flex: 0 0 180px;
-  height: 8px;
+  flex: 0 0 calc(60 * var(--u));
+  height: calc(4 * var(--u));
   background: #000;
-  outline: 1px solid var(--line);
+  border: var(--u) solid #000;
+  outline: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 #bar-fill {
@@ -786,6 +894,21 @@ button:disabled {
   height: 100%;
   background: #7fd66b;
   transition: width 0.2s;
+}
+
+#version,
+#notice {
+  position: fixed;
+  bottom: calc(2 * var(--u));
+  font-size: calc(6 * var(--u));
+}
+
+#version {
+  left: calc(2 * var(--u));
+}
+
+#notice {
+  right: calc(2 * var(--u));
 }
 
 #locations {
@@ -811,14 +934,14 @@ button:disabled {
 }
 
 #custom,
-#token-form {
+.key-form {
   display: flex;
   gap: 6px;
   margin-top: 8px;
 }
 
 #custom input,
-#token-form input {
+.key-form input {
   flex: 1;
   min-width: 0;
   font: inherit;
@@ -850,12 +973,37 @@ kbd {
   border-bottom-width: 3px;
 }
 
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.setting input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: #c9c9c9;
+}
+
+.setting input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #c9c9c9;
+}
+
+#pace-value {
+  min-width: 3.2em;
+  text-align: right;
+}
+
 #edits-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 16px;
   font-size: 12px;
   color: var(--dim);
 }
@@ -871,13 +1019,15 @@ kbd {
   padding: 5px 9px;
 }
 
-#more {
+#more,
+.more {
   margin-top: 14px;
   font-size: 12px;
   color: var(--dim);
 }
 
-#more summary {
+#more summary,
+.more summary {
   cursor: pointer;
 }
 
@@ -890,16 +1040,529 @@ kbd {
   color: var(--dim);
 }
 
-.credits a {
+.credits a,
+.hint a {
   color: #9fc4ff;
 }
 
 @media (max-width: 640px) {
-  h1 {
-    font-size: 28px;
+  #notice {
+    display: none;
   }
+}
 
-  .panel {
-    padding: 18px 16px 14px;
+/* ---- title screen extras: the language button, the note about the photo source, and the
+   sheets of the other screens framed like an inventory window */
+
+#overlay.title::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, transparent 35%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+#overlay.title .screen,
+#overlay.title #version,
+#overlay.title #notice {
+  z-index: 1;
+}
+
+
+#promo {
+  display: grid;
+  gap: calc(1.5 * var(--u));
+  width: min(calc(200 * var(--u)), 100%);
+  margin-top: calc(8 * var(--u));
+  padding: calc(4 * var(--u)) calc(6 * var(--u));
+  text-align: center;
+  font-size: calc(5.5 * var(--u));
+  line-height: 1.35;
+  color: #fff;
+  text-shadow: var(--u) var(--u) 0 #2b2200;
+  background: rgba(40, 30, 0, 0.72);
+  border: var(--u) solid #000;
+  outline: none;
+  box-shadow:
+    inset 0 0 0 var(--u) var(--gold),
+    0 0 calc(8 * var(--u)) rgba(255, 216, 61, 0.35);
+  animation: promo-glow 1.6s ease-in-out infinite alternate;
+}
+
+#promo b {
+  font-size: calc(6.5 * var(--u));
+  font-weight: 700;
+  color: var(--gold);
+}
+
+#promo:hover {
+  background: rgba(70, 54, 0, 0.85);
+}
+
+#promo.on {
+  animation: none;
+  background: rgba(0, 40, 10, 0.6);
+  box-shadow: inset 0 0 0 var(--u) #7fd66b;
+}
+
+#promo.on b {
+  color: #9be88a;
+}
+
+#promo.on span {
+  display: none;
+}
+
+@keyframes promo-glow {
+  from {
+    box-shadow:
+      inset 0 0 0 var(--u) var(--gold),
+      0 0 calc(4 * var(--u)) rgba(255, 216, 61, 0.2);
   }
+  to {
+    box-shadow:
+      inset 0 0 0 var(--u) var(--gold),
+      0 0 calc(12 * var(--u)) rgba(255, 216, 61, 0.55);
+  }
+}
+
+.screen h2 {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.sheet {
+  border: var(--u) solid #000;
+  box-shadow:
+    inset var(--u) var(--u) 0 rgba(255, 255, 255, 0.16),
+    inset calc(-1 * var(--u)) calc(-1 * var(--u)) 0 rgba(0, 0, 0, 0.5);
+  background: rgba(16, 14, 12, 0.82);
+  font-size: 14px;
+}
+
+.hint.lead {
+  margin: 8px 0;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.45;
+  border-left: 3px solid var(--gold);
+  background: rgba(255, 216, 61, 0.1);
+}
+
+#notice,
+#version {
+  opacity: 0.9;
+}
+
+/* the blocky typeface: menus, messages and the item name; the small print stays monospace */
+#overlay,
+#death,
+#toast,
+#mc-name,
+#place-title {
+  font-family: var(--pixel);
+}
+
+.menu button,
+.screen > .back {
+  font-size: calc(10 * var(--u));
+  letter-spacing: 0.03em;
+}
+
+.screen h2 {
+  font-size: calc(12 * var(--u));
+  font-weight: 400;
+}
+
+#logo-sub {
+  font-size: calc(8.5 * var(--u));
+  font-weight: 400;
+}
+
+#splash {
+  font-size: calc(9 * var(--u));
+}
+
+#status,
+#version,
+#notice {
+  font-size: calc(7.5 * var(--u));
+}
+
+#promo {
+  font-size: calc(7.5 * var(--u));
+  line-height: 1.15;
+}
+
+#promo b {
+  font-size: calc(9 * var(--u));
+  font-weight: 400;
+}
+
+.sheet {
+  font-family: var(--font);
+}
+
+/* language picker, top right of every menu screen */
+#language {
+  position: fixed;
+  top: calc(3 * var(--u));
+  right: calc(3 * var(--u));
+  z-index: 2;
+  display: flex;
+  gap: calc(1.5 * var(--u));
+}
+
+#language button {
+  min-width: calc(18 * var(--u));
+  height: calc(14 * var(--u));
+  padding: 0 calc(3 * var(--u));
+  font-size: calc(8 * var(--u));
+  color: #ddd;
+  text-shadow: var(--u) var(--u) 0 #3a3a3a;
+  background: #717171;
+  border: var(--u) solid #000;
+  outline: none;
+  box-shadow:
+    inset var(--u) var(--u) 0 #a8a8a8,
+    inset calc(-1 * var(--u)) calc(-2 * var(--u)) 0 #4c4c4c;
+}
+
+#language button:hover {
+  background: #7c86b8;
+  border-color: #fff;
+}
+
+#language button.current {
+  color: var(--gold);
+  background: #4a4a4a;
+  box-shadow: inset 0 0 0 var(--u) var(--gold);
+}
+
+/* a place only Google has photos of, while Google is off */
+#locations button.locked {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+#locations button.locked em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--gold);
+}
+
+/* ---- the catalogue as a creative inventory: tabs on top, five rows, a scroll bar, the hotbar.
+   Drawn plainly here; with a texture pack the window, tabs and scroller are the pack's own. */
+
+.mc-window.catalog {
+  position: relative;
+  margin-top: calc(28 * var(--u));
+}
+
+#cat-tabs {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  display: flex;
+  gap: var(--u);
+}
+
+#cat-tabs button {
+  width: calc(26 * var(--u));
+  height: calc(24 * var(--u));
+  padding: 0;
+  background: #8b8b8b;
+  border: var(--u) solid #000;
+  border-bottom: 0;
+  outline: none;
+}
+
+#cat-tabs button.on {
+  background: #c6c6c6;
+  height: calc(28 * var(--u));
+}
+
+#cat-tabs button {
+  align-self: flex-end;
+}
+
+#cat-tabs canvas {
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  image-rendering: pixelated;
+}
+
+.mc-window.catalog {
+  display: grid;
+  grid-template-columns: auto calc(12 * var(--u));
+  column-gap: calc(4 * var(--u));
+}
+
+.mc-window.catalog h4,
+.mc-window.catalog #cat-bar {
+  grid-column: 1 / -1;
+}
+
+#cat-scroll {
+  position: relative;
+  background: #8b8b8b;
+  box-shadow: inset var(--u) var(--u) 0 #373737;
+  cursor: pointer;
+}
+
+#cat-knob {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: calc(15 * var(--u));
+  margin-top: 0;
+  background: #c6c6c6;
+  border: var(--u) solid #000;
+  transform: translateY(calc(-1 * var(--knob, 0%)));
+}
+
+#cat-scroll.idle #cat-knob {
+  background: #777;
+}
+
+body.pack-creative .mc-window.catalog {
+  display: block;
+  width: calc(195 * var(--u));
+  height: calc(136 * var(--u));
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--pack-creative) 0 0 / calc(256 * var(--u)) calc(256 * var(--u)) no-repeat;
+  image-rendering: pixelated;
+}
+
+body.pack-creative .catalog h4,
+body.pack-creative .catalog .mc-grid,
+body.pack-creative #cat-scroll {
+  position: absolute;
+  margin: 0;
+}
+
+body.pack-creative .catalog h4 {
+  left: calc(8 * var(--u));
+  top: calc(6 * var(--u));
+}
+
+body.pack-creative #cat-grid {
+  left: calc(9 * var(--u));
+  top: calc(18 * var(--u));
+}
+
+body.pack-creative #cat-bar {
+  left: calc(9 * var(--u));
+  top: calc(112 * var(--u));
+}
+
+body.pack-creative #cat-scroll {
+  left: calc(175 * var(--u));
+  top: calc(18 * var(--u));
+  width: calc(12 * var(--u));
+  /* the knob's top travels the track less its own height */
+  height: calc(95 * var(--u));
+  background: none;
+  box-shadow: none;
+}
+
+body.pack-creative #cat-knob {
+  border: 0;
+  background: var(--pack-scroller) 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+body.pack-creative #cat-scroll.idle #cat-knob {
+  filter: brightness(0.6);
+}
+
+body.pack-creative .catalog .mc-slot {
+  background: none;
+  box-shadow: none;
+}
+
+body.pack-creative .catalog .mc-slot:hover {
+  background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)) center / calc(16 * var(--u)) calc(16 * var(--u)) no-repeat;
+}
+
+/* tabs: 26 x 32 sprites on a 27 pitch, the lit one reaching 4 units into the window */
+body.pack-creative #cat-tabs {
+  bottom: auto;
+  top: calc(-28 * var(--u));
+  gap: var(--u);
+  align-items: flex-start;
+}
+
+body.pack-creative #cat-tabs button {
+  position: relative;
+  align-self: flex-start;
+  width: calc(26 * var(--u));
+  height: calc(32 * var(--u));
+  border: 0;
+  background: var(--pack-tab-off-2) 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+body.pack-creative #cat-tabs button.first {
+  background-image: var(--pack-tab-off-1);
+}
+
+body.pack-creative #cat-tabs button.last {
+  background-image: var(--pack-tab-off-7);
+  margin-left: auto;
+}
+
+body.pack-creative #cat-tabs {
+  width: 100%;
+}
+
+body.pack-creative #cat-tabs button.on {
+  z-index: 1;
+  background-image: var(--pack-tab-on-2);
+}
+
+body.pack-creative #cat-tabs button.first.on {
+  background-image: var(--pack-tab-on-1);
+}
+
+body.pack-creative #cat-tabs button.last.on {
+  background-image: var(--pack-tab-on-7);
+}
+
+body.pack-creative #cat-tabs canvas {
+  position: absolute;
+  left: calc(5 * var(--u));
+  top: calc(9 * var(--u));
+}
+
+/* the two tabs under the catalogue (everything, and the spawn eggs) */
+.mc-window.catalog {
+  margin-bottom: calc(28 * var(--u));
+}
+
+#cat-tabs-low {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  display: flex;
+  gap: var(--u);
+  align-items: flex-start;
+}
+
+#cat-tabs-low button {
+  width: calc(26 * var(--u));
+  height: calc(24 * var(--u));
+  padding: 0;
+  background: #8b8b8b;
+  border: var(--u) solid #000;
+  border-top: 0;
+  outline: none;
+}
+
+#cat-tabs-low button.on {
+  background: #c6c6c6;
+  height: calc(28 * var(--u));
+}
+
+#cat-tabs-low canvas {
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  image-rendering: pixelated;
+}
+
+body.pack-creative #cat-tabs-low {
+  top: calc(132 * var(--u));
+}
+
+body.pack-creative #cat-tabs-low button {
+  position: relative;
+  width: calc(26 * var(--u));
+  height: calc(32 * var(--u));
+  border: 0;
+  background: var(--pack-tab-low-off-2) 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+body.pack-creative #cat-tabs-low button.first {
+  background-image: var(--pack-tab-low-off-1);
+}
+
+body.pack-creative #cat-tabs-low button.on {
+  z-index: 1;
+  background-image: var(--pack-tab-low-on-2);
+}
+
+body.pack-creative #cat-tabs-low button.first.on {
+  background-image: var(--pack-tab-low-on-1);
+}
+
+body.pack-creative #cat-tabs-low canvas {
+  position: absolute;
+  left: calc(5 * var(--u));
+  top: calc(7 * var(--u));
+}
+
+/* ---- places: the player's own (with a cross to take one off the list), and the form */
+#locations .mine {
+  position: relative;
+  display: grid;
+}
+
+#locations .mine .remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: #fff;
+  background: #7a2a2a;
+  border: 1px solid #000;
+  outline: none;
+}
+
+#locations .mine .remove:hover {
+  background: #b23b3b;
+}
+
+.sheet h3 {
+  margin-top: 16px;
+}
+
+#custom {
+  flex-wrap: wrap;
+}
+
+#custom #place-name {
+  flex: 0 1 150px;
+}
+
+#custom-locked {
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #fff;
+  background: rgba(255, 216, 61, 0.1);
+  border: 0;
+  border-left: 3px solid var(--gold);
+  outline: none;
+}
+
+#custom-locked:hover {
+  background: rgba(255, 216, 61, 0.2);
+}
+
+#places-note {
+  border-left-color: #ff6a5e;
+  background: rgba(255, 90, 79, 0.14);
 }

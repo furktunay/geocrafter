@@ -2,7 +2,12 @@
 // The 1-block border means a chunk meshes without looking at its neighbours.
 // Layer 0 and layer H-1 are never meshed: 0 is bedrock, H-1 is guaranteed air.
 import { CHUNK, PS } from './config.js';
-import { OPAQUE, SHADE, PASS, GLOW, TEX_TOP, TEX_SIDE, TEX_BOTTOM, B } from './blocks.js';
+import { OPAQUE, SHADE, PASS, GLOW, TEX_DIR, MODEL, boxesOf, B } from './blocks.js';
+import { T } from './textures.js';
+
+// Top faces that sit below the top of their cell, by texture layer: water stands a little low.
+const DROP = new Float32Array(256);
+DROP[T.water] = 0.125;
 
 const SX = 1, SZ = PS, SY = PS * PS;
 
@@ -52,7 +57,7 @@ let mask = new Int32Array(CHUNK * 64);
 // vertex flags: sky | glow<<1 | edited<<3
 function emit(k, a, sgn, i, u0, v0, w, h) {
   let p = sgn > 0 ? i + 1 : i;
-  if (a === 1 && (k >> 5) & 1) p -= 0.125;
+  if (a === 1 && (k >> 5) & 1) p -= DROP[(k >> 14) & 255];
   const flags = ((k >> 2) & 1) | (((k >> 3) & 3) << 1) | (((k >> 22) & 1) << 3);
   const buf = bufs[(k >> 1) & 1];
   pushQuad(buf, a, sgn, p, u0, v0, u0 + w, v0 + h, (k >> 14) & 255, flags,
@@ -130,11 +135,10 @@ export function meshChunk(data, H, edited = null, corners = null) {
     const aLo = a === 1 ? 1 : 0, aHi = a === 1 ? H - 2 : CHUNK - 1;
     const vLo = a === 1 ? 0 : 1, vHi = a === 1 ? CHUNK - 1 : H - 2;
     const nV = vHi - vLo + 1;
-    const texOf = a === 1 ? null : TEX_SIDE;
 
     for (let sgn = 1; sgn >= -1; sgn -= 2) {
       const dir = a * 2 + (sgn > 0 ? 0 : 1);
-      const tex = texOf || (sgn > 0 ? TEX_TOP : TEX_BOTTOM);
+      const tex = TEX_DIR[dir];
       const step = sgn * sA;
       for (let i = aLo; i <= aHi; i++) {
         let any = false;
@@ -144,7 +148,7 @@ export function meshChunk(data, H, edited = null, corners = null) {
           for (let u = 0; u < CHUNK; u++, c += sU) {
             const b = data[c];
             let key = 0;
-            if (b !== 0) {
+            if (b !== 0 && MODEL[b] === null) {
               const n = c + step;
               const nb = data[n];
               if (nb === 0 || (!OPAQUE[nb] && nb !== b)) {
@@ -152,7 +156,8 @@ export function meshChunk(data, H, edited = null, corners = null) {
                 const sky = yN > colTop[n - yN * SY] ? 1 : 0;
                 const pass = PASS[b];
                 key = 1 | (pass << 1) | (sky << 2) | (GLOW[b] << 3) | (tex[b] << 14);
-                if (edited !== null && (edited[c] | edited[n])) key |= 1 << 22;
+                // (a fill block put where the player dug keeps the photo: it mends what was broken)
+                if (edited !== null && ((edited[c] && b !== B.FILL) | edited[n])) key |= 1 << 22;
                 if (ground !== null) {
                   // the face's four vertices, in chunk coordinates
                   const p = sgn > 0 ? i + 1 : i, y0 = v + vLo;
@@ -209,5 +214,43 @@ export function meshChunk(data, H, edited = null, corners = null) {
       }
     }
   }
+  // shaped blocks only ever come from the player
+  if (edited !== null) meshModels(data, H);
   return [bufs[0].take(), bufs[1].take()];
+}
+
+// The shaped blocks (blocks.js): every box of each one, face by face. They are the player's own,
+// so they never wear the photo; a face against an opaque neighbour is left out.
+function meshModels(data, H) {
+  for (let y = 1; y < H - 1; y++) {
+    for (let z = 0; z < CHUNK; z++) {
+      let c = (y * PS + z + 1) * PS + 1;
+      for (let x = 0; x < CHUNK; x++, c++) {
+        const b = data[c];
+        if (b === 0 || MODEL[b] === null) continue;
+        const m = MODEL[b];
+        const boxes = m.byMask ? boxesOf(b, data[c - SZ], data[c + SX], data[c + SZ], data[c - SX]) : m.boxes;
+        const flags = (y > colTop[(z + 1) * PS + x + 1] ? 1 : 0) | (GLOW[b] << 1) | 8;
+        const buf = bufs[PASS[b]];
+        for (let i = 0; i < boxes.length; i++) {
+          const bx = boxes[i], t = bx[6] || m.tex;
+          const x0 = x + bx[0], y0 = y + bx[1], z0 = z + bx[2], x1 = x + bx[3], y1 = y + bx[4], z1 = z + bx[5];
+          // a box with no thickness one way is a sheet: both its faces, nothing else
+          const flat = x0 === x1 ? 0 : y0 === y1 ? 1 : z0 === z1 ? 2 : -1;
+          if (flat !== 1 && flat !== 2) {
+            if (flat === 0 || bx[3] < 1 || !OPAQUE[data[c + SX]]) pushQuad(buf, 0, 1, x1, z0, y0, z1, y1, t[0], flags, 3, 3, 3, 3);
+            if (flat === 0 || bx[0] > 0 || !OPAQUE[data[c - SX]]) pushQuad(buf, 0, -1, x0, z0, y0, z1, y1, t[1], flags, 3, 3, 3, 3);
+          }
+          if (flat !== 0 && flat !== 2) {
+            if (flat === 1 || bx[4] < 1 || !OPAQUE[data[c + SY]]) pushQuad(buf, 1, 1, y1, x0, z0, x1, z1, t[2], flags, 3, 3, 3, 3);
+            if (flat === 1 || bx[1] > 0 || !OPAQUE[data[c - SY]]) pushQuad(buf, 1, -1, y0, x0, z0, x1, z1, t[3], flags, 3, 3, 3, 3);
+          }
+          if (flat !== 0 && flat !== 1) {
+            if (flat === 2 || bx[5] < 1 || !OPAQUE[data[c + SZ]]) pushQuad(buf, 2, 1, z1, x0, y0, x1, y1, t[4], flags, 3, 3, 3, 3);
+            if (flat === 2 || bx[2] > 0 || !OPAQUE[data[c - SZ]]) pushQuad(buf, 2, -1, z0, x0, y0, x1, y1, t[5], flags, 3, 3, 3, 3);
+          }
+        }
+      }
+    }
+  }
 }

@@ -4,8 +4,9 @@ export const PAD = 1; // voxel border copied from neighbours so a chunk meshes o
 export const PS = CHUNK + 2 * PAD;
 export const MARGIN = 4; // column-raster margin: trees, walls and building ids look this far past the border
 export const MAX_Y = 768;
-export const SEA_Y = 16; // world y of 0 m elevation
+export const SEA_Y = 48; // world y of 0 m elevation: this much stone lies under a street at sea level
 export const MIN_EDIT_Y = 2; // bedrock layers below this are never touched
+export const BEDROCK_TOP = 4; // bedrock is solid below MIN_EDIT_Y and ragged up to here
 // Skyline beyond the voxel chunks: tiles of FAR_TILE metres built from FAR_CELL-metre columns.
 export const FAR_TILE = 128;
 export const FAR_CELL = 4;

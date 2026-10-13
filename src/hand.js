@@ -1,7 +1,6 @@
 // First-person arm and the item it holds, drawn over the world in its own little scene.
 import * as THREE from 'three';
-import { TEX_TOP, TEX_SIDE, TEX_BOTTOM } from './blocks.js';
-import { isBlock, layerCanvas, toolSprite } from './items.js';
+import { isBlock, layerCanvas, itemLook } from './items.js';
 
 const FOV = 70;
 const DEG = Math.PI / 180;
@@ -85,6 +84,48 @@ function slab(canvas) {
   return g;
 }
 
+// A shaped block as a mesh: its boxes, each face showing the part of its texture that lies where
+// the face does. Fitted into a unit cube and centred; one material for each texture used.
+const FACES = [
+  [0, 1, 0.78, (b) => [[b[3], b[1], b[2]], [b[3], b[1], b[5]], [b[3], b[4], b[5]], [b[3], b[4], b[2]]], (p) => [p[2], p[1]]],
+  [0, -1, 0.62, (b) => [[b[0], b[1], b[2]], [b[0], b[1], b[5]], [b[0], b[4], b[5]], [b[0], b[4], b[2]]], (p) => [p[2], p[1]]],
+  [1, 1, 0.92, (b) => [[b[0], b[4], b[2]], [b[3], b[4], b[2]], [b[3], b[4], b[5]], [b[0], b[4], b[5]]], (p) => [p[0], p[2]]],
+  [1, -1, 0.5, (b) => [[b[0], b[1], b[2]], [b[3], b[1], b[2]], [b[3], b[1], b[5]], [b[0], b[1], b[5]]], (p) => [p[0], p[2]]],
+  [2, 1, 1, (b) => [[b[0], b[1], b[5]], [b[3], b[1], b[5]], [b[3], b[4], b[5]], [b[0], b[4], b[5]]], (p) => [p[0], p[1]]],
+  [2, -1, 0.7, (b) => [[b[0], b[1], b[2]], [b[3], b[1], b[2]], [b[3], b[4], b[2]], [b[0], b[4], b[2]]], (p) => [p[0], p[1]]],
+];
+function shapeMesh(parts, span) {
+  const byLayer = new Map();
+  const k = 1 / Math.max(span[0], span[1], span[2], 1);
+  for (const part of parts) {
+    for (const b of part.boxes) {
+      const t = b[6] || part.tex;
+      FACES.forEach(([axis, , light, corners, uvOf], d) => {
+        if (b[axis] === b[axis + 3] && d % 2) return; // a sheet: one face, drawn from both sides
+        let g = byLayer.get(t[d]);
+        if (!g) byLayer.set(t[d], (g = { pos: [], uv: [], col: [] }));
+        const c = corners(b);
+        for (const i of [0, 1, 2, 0, 2, 3]) {
+          g.pos.push((c[i][0] + part.off[0] - span[0] / 2) * k, (c[i][1] + part.off[1] - span[1] / 2) * k, (c[i][2] + part.off[2] - span[2] / 2) * k);
+          g.uv.push(...uvOf(c[i]));
+          g.col.push(light, light, light);
+        }
+      });
+    }
+  }
+  const group = new THREE.Group();
+  for (const [layer, g] of byLayer) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(g.pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(g.uv, 2));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(g.col, 3));
+    const map = pixelTexture(layerCanvas(layer));
+    map.wrapS = map.wrapT = THREE.ClampToEdgeWrapping;
+    group.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map, vertexColors: true, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide })));
+  }
+  return group;
+}
+
 export class Hand {
   constructor() {
     this.scene = new THREE.Scene();
@@ -133,18 +174,27 @@ export class Hand {
   mesh(id) {
     let m = this.cache.get(id);
     if (m) return m;
-    if (isBlock(id)) {
-      const mat = (layer) => new THREE.MeshBasicMaterial({ map: pixelTexture(layerCanvas(layer)), transparent: true, alphaTest: 0.1 });
-      const s = mat(TEX_SIDE[id]);
-      const dark = s.clone();
-      dark.color.setScalar(0.7);
-      m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), [s, dark, mat(TEX_TOP[id]), mat(TEX_BOTTOM[id]), dark, s]);
+    const look = itemLook(id);
+    if (look.cube) {
+      const mat = (layer, light) => {
+        const mm = new THREE.MeshBasicMaterial({ map: pixelTexture(layerCanvas(layer)), transparent: true, alphaTest: 0.1 });
+        mm.color.setScalar(light);
+        return mm;
+      };
+      const c = look.cube;
+      // the two sides in view are the ones the slots show: west on the left, north on the right
+      m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), [mat(c[0], 1), mat(c[1], 0.7), mat(c[2], 1), mat(c[3], 1), mat(c[5], 0.7), mat(c[4], 1)]);
       m.position.set(0.02, 0.18, -0.02);
       m.rotation.set(0.3, 0.7, 0.05);
+    } else if (look.parts) {
+      m = shapeMesh(look.parts, look.span);
+      m.scale.setScalar(0.22);
+      m.position.set(0.02, 0.18, -0.02);
+      m.rotation.set(0.3, 0.7 + Math.PI, 0.05); // its north-west corner towards the eye, as in the slots
     } else {
       // A tool is held upright by its lower end: the sprite is turned edge-on to the viewer
       // and tipped back, so it rises from the bottom right corner towards the top of the screen.
-      m = new THREE.Mesh(slab(toolSprite(id)), this.flat);
+      m = new THREE.Mesh(slab(look.flat), this.flat);
       m.position.set(1.13 / 16, 3.2 / 16, 1.13 / 16);
       m.rotation.set(0, -90 * DEG, 25 * DEG);
       m.scale.setScalar(0.68);
@@ -160,7 +210,7 @@ export class Hand {
     if (this.item) this.holder.remove(this.item);
     this.item = id ? this.mesh(id) : null;
     if (this.item) this.holder.add(this.item);
-    this.arm.visible = !id || isBlock(id); // a tool's grip is below the screen: no arm in view
+    this.arm.visible = !id || !itemLook(id).flat; // a tool's grip is below the screen: no arm in view
     this.equipT = 0;
   }
 
@@ -170,7 +220,7 @@ export class Hand {
 
   update(dt, moving) {
     this.time += dt * (moving ? 9 : 1.6);
-    this.swingT = Math.min(1, this.swingT + dt / 0.3);
+    this.swingT = Math.min(1, this.swingT + dt / 0.42); // an unhurried chop: one per block broken
     this.equipT = Math.min(1, this.equipT + dt / 0.22);
     const t = this.swingT;
     const dip = 1 - Math.sin(this.equipT * Math.PI * 0.5);

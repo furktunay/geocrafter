@@ -1,184 +1,149 @@
 # Street Craft
 
-Gerçek 360° sokak fotoğrafının içinde blok oyunu: fotoğraftan fotoğrafa ışınlanırsın, fotoğrafın
-içine blok koyarsın, gerçek yolu ve binaları kırarsın ya da TNT ile havaya uçurursun; altından blok
-dünyası çıkar.
+A block game played inside real 360° street photos. You stand in a street-level panorama, step from
+photo to photo, put blocks into the picture, dig up the real road and blow up the real buildings.
+Underneath the photo there is a block world built from map data, and it shows wherever you break
+through.
 
-Hayran yapımı bir projedir; Mojang ya da Microsoft ile bağı yoktur. Oyundaki bütün çizimler ve
-sesler bu depoda üretilir, başka bir oyunun dosyası kullanılmaz.
+An experimental project. **Not an official Minecraft product. Not approved by or associated with
+Mojang or Microsoft.** Not affiliated with Google either. Every drawing and sound in this repository
+is made by the game's own code; no other game's files are included.
 
-## Çalıştırma
+Türkçe: [README.tr.md](README.tr.md)
+
+## Run it
 
 ```bash
 npm install
 npm run dev
 ```
 
-Sonra tarayıcıda `http://localhost:5173`. Başka bir yer için menüdeki konumlardan birini seç ya da
-adres çubuğuna `?lat=52.37309&lon=4.89318` gibi koordinat ekle.
+Then open `http://localhost:5173`. Node 20 or newer. `npm run build` writes a static site to `dist/`.
 
-## Konumlar
+## Street photos are the game
 
-Liste bilerek kısa: yalnızca verisi iyi olan yerler.
+A place can only be played where there are street photos to stand in. There are two ways to get them.
 
-- **Amsterdam** (Dam, Prinsengracht, Brouwersgracht, Museumplein): belediyenin ölçüm aracıyla
-  5 metrede bir çektiği 8000 piksellik panoramalar (`api.data.amsterdam.nl/panorama`), ülke çapındaki
-  lazer taraması (AHN, 0,5 m) ve resmî bina kaydı (3D BAG). Fotoğrafın konumu ve yönü ölçüm
-  sisteminden gelir; tahmin yok.
-- **İstanbul** (Eminönü, Kadıköy İskelesi, Moda): bir gönüllünün yürüyerek çektiği 7680 piksellik
-  panoramalar (Panoramax). Araç yok; konumlar GPS hassasiyetinde, geometri bina taban alanlarından.
+**Free, no key.** Two places in Amsterdam work out of the box: **Nieuwmarkt** and **Arena Boulevard**.
+They use the municipality's own survey panoramas (8000 px, one every 5 m, measured positions) on top
+of the Dutch national laser scan, so blocks sit exactly on the real surfaces. The free sources do not
+cover other places, and the game does not let you add any on them.
 
-Fotoğrafın içinde durduğun sürece görüntü her yerde kusursuzdur (fotoğrafı çekildiği noktadan
-görüyorsun). Fark, blok koyarken ve geçişlerde çıkar: Amsterdam'da bloklar gerçek yüzeye tam oturur,
-İstanbul'da biraz kayık durabilir.
+**Google Street View, with your own key.** Switch it on in **Options** and almost every street on
+Earth opens up, in sharper photos: the other places in the list (New York, Times Square, Las Vegas,
+London, Berlin, Rotterdam, Rome, Barcelona, Tel Aviv, Tokyo) unlock, and **Choose a place → Add your
+own place** takes coordinates or a pasted Google Maps link.
 
-## Kontroller
+To get a key:
 
-| Tuş | İş |
+1. In the [Google Cloud Console](https://console.cloud.google.com/), pick or create a project with
+   billing enabled.
+2. Enable the **Map Tiles API** for it.
+3. Create an **API key**. Restrict it to the Map Tiles API, and to the address you play from
+   (`http://localhost:5173/*`).
+4. In the game: **Options → Google Street View**, paste the key, save.
+
+Things to know before you do:
+
+- The key is stored in your browser only (`localStorage`). It is never written to the repository,
+  and a build never contains one. While developing you can also put `VITE_GOOGLE_MAPS_KEY=...` into
+  `.env.local` (git-ignored); only `npm run dev` reads it.
+- Google bills by tile. At the time of writing its price list gave the first 100,000 Street View
+  tiles a month for free and charged $2 per 1,000 after that, with a default quota of 15,000 tiles a
+  day; check the current numbers yourself. A photo is 32 tiles while you walk and 64 more to sharpen
+  when you stop.
+- The game counts the tiles it asks for and stops at 90,000 a month unless you tell it (in Options)
+  how many tiles you are willing to pay for. The counter only sees this browser; the Cloud Console
+  has the real figure.
+- Your use of Google's imagery is subject to the Google Maps Platform Terms of Service. The game
+  only displays the photos; it does not store or analyse them.
+
+If a place has no photos (Google is off, the key does not work, or there is simply nothing there),
+the game says so and sends you back to the list instead of starting.
+
+## Controls
+
+| Key | What it does |
 | --- | --- |
-| `W` | Baktığın yöndeki oka (bir sonraki fotoğrafa) ışınlan; basılı tutunca devam eder |
-| `A` `S` `D` | Soldaki, arkadaki, sağdaki fotoğrafa ışınlan |
-| Oka ya da halkaya tıklama | Oraya ışınlan |
-| Sol tık / sağ tık | Kır, vur / koy, kullan |
-| 1–9, tekerlek | Alt bardan eşya seç |
-| `E` | Envanter ve üretim |
-| `F` | Serbest uçuş (fotoğraftan uzaklaştıkça görüntü bozulur) |
-| `G` | En yakın fotoğrafa dön |
-| `R` iki kez | Bu haritayı sıfırla: kırdığın ve koyduğun her şey geri alınır |
-| `P` | Fotoğrafı aç/kapat (alttaki blok dünyası) |
-| `C` | Elle hizalama: ← → yön, ↑ ↓ kamera yüksekliği, I J K L kaydır, Backspace sıfırla |
-| `M`, `F3` | Büyük harita, hata ayıklama bilgisi |
+| `W` | Step to the photo the arrow you face points at; hold to keep going |
+| `A` `S` `D` | Step left, back, right |
+| Left click / right click | Break or hit / place or use |
+| `1`–`9`, wheel | Pick an item from the hotbar |
+| Middle click | Pick the block you point at |
+| `E` | Inventory (creative catalogue with tabs) and 2×2 crafting |
+| `Tab` | Switch between photo mode and free roam (walk, jump) |
+| `F`, double `Space` | Fly, in free roam |
+| `G` | Back to the nearest photo |
+| `V` | Give the car you point at a solid body (again: undo) |
+| `R` twice | Reset this map |
+| `P` | Photo on/off (shows the block world underneath) |
+| `C` | Fine-tune how the photo sits on the blocks |
+| `M`, `F3` | Big map, debug information |
 
-Sol alttaki W A S D kutuları o yönde gidilecek fotoğraf varsa sarı yanar.
+Where the browser cannot lock the pointer (embedded previews), the game falls back to drag-to-look.
 
-Tarayıcı imleci kilitleyemezse (gömülü önizlemeler) oyun sürükle-bak moduna geçer: sürükleyerek
-bakarsın, tıkladığın yere koyup kırarsın, `Esc` menüye döner.
+## What is in it
 
-## Eşyalar
+- **Building blocks:** stone, bricks, planks, concrete, glass, wool and carpets in sixteen colours,
+  ores and their blocks, and the materials real streets are made of (asphalt, paving, kerbs, roof
+  tiles), which go into your inventory the first time you dig them up.
+- **Shaped blocks:** slabs and stairs in six materials, doors that swing, trapdoors, fences and glass
+  panes that join their neighbours, ladders, torches, beds that take two cells, chests that store
+  things. Stairs climb away from you, a chest faces you, a second slab on the first makes the whole
+  block again.
+- **Things to do:** TNT with flint and steel, a bow, a pickaxe and a sword, bread when you are hungry,
+  spawn eggs (skeleton archers, creepers, zombies, zombified piglins), an obsidian portal to a Nether
+  under every place, and a bed that does what beds do where nobody is supposed to sleep.
+- **Three languages:** English, Turkish and Spanish (top right of the menu).
 
-- **Kazma**: basılı tutunca hızlı kırar. **Kılıç**: yaprak ve cam keser, iskelete en çok o vurur.
-- **Yay**: sağ tıkı basılı tutup bırakınca ok atar; bir saniyeye kadar gerdikçe ok hızlanır ve daha
-  çok can götürür. Oklar yere ve duvarlara saplanır.
-- **TNT + çakmak**: TNT'yi koy, çakmakla sağ tıkla; fitil 4 saniye yanar, sonra krater açılır.
-  Yakındaysan can gider. Yan yana TNT'ler zincirleme patlar.
-- **İskelet yumurtası**: sağ tıkla yere bırak, içinden bir iskelet okçu çıkar. Mesafesini korur ve
-  seni görünce ok atar; fotoğrafın içindeyken kaçamadığın için isabeti bilerek düşük tutuldu.
-  İki dolu yay atışı ya da üç kılıç darbesiyle dağılır.
-- **Ekmek**: açlığı doldurur. Can, karın tokken kendiliğinden dolar.
-- Kırdığın gerçek yüzeyin malzemesi (asfalt, parke, tuğla, pencere…) ilk seferde envantere eklenir.
-- Üretim (envanterdeki 2×2 kare): kütük → tahta, kum + çakıl → TNT, 4 kum → cam, 4 taş → beton,
-  çelik + çakıl → çakmak, 2 çelik + tahta → kılıç, 3 çelik + tahta → kazma.
+Block changes, the inventory, chests and settings are saved in the browser, per place.
 
-Envanter, deneyim puanı ve yaptığın blok değişiklikleri tarayıcıda saklanır. Menüdeki "Bu haritayı
-sıfırla" ve "Tüm haritaları sıfırla" düğmeleri değişiklikleri siler.
+## Texture and sound packs
 
-## Ses paketi
+The game draws all of its own textures and synthesises its own sounds. If you would rather see and
+hear files you own, put them into `public/textures/` and `public/sounds/`, laid out like a resource
+pack's `textures` and `sounds` folders; `pack.json` in each folder says which file dresses which
+part of the game, and anything missing keeps the built-in version.
 
-Sesler kodla üretilir; depoda ses dosyası yoktur. Kayıt kullanmak istersen dosyaları
-`public/sounds/` klasörüne koyarsın, oyun bulduklarını üretilen seslerin yerine çalar.
+`npm run textures` and `npm run sounds` copy the files named in `pack.json` from a game installed on
+this computer (nothing is downloaded); `npm run textures:prune` and `npm run sounds:prune` delete
+whatever `pack.json` does not name. Those folders are git-ignored apart from `pack.json`. Only use
+files you have the right to use, and do not publish other people's files with your build: `npm run
+build` copies `public/` into `dist/` as it is.
 
-Klasör düzeni ve dosya adları kaynak paketlerindeki `sounds` klasörüyle aynıdır
-(`dig/stone1.ogg`, `step/grass3.ogg`, `random/explode1.ogg`, `random/fuse.ogg`, `fire/ignite.ogg`,
-`damage/hit1.ogg`, `entity/player/attack/strong1.ogg` …). Öyle bir klasörün içindekileri
-`public/sounds/` altına kopyalaman yeter; başka ayar gerekmez.
+## How it works
 
-Oyun bu bilgisayarda kuruluysa elle kopyalamaya gerek yok: `npm run sounds`, `pack.json`'da adı
-geçen dosyaları kendi kurulumundan bulup yerine koyar (hiçbir şey indirmez). Başka bir başlatıcı
-kullanıyorsan assets klasörünün yolunu ver: `npm run sounds -- "/yol/assets"`.
+- A panorama is projected onto the block world from the spot it was taken. A surface wears the photo
+  only where the camera could see it (tested against a distance map rendered from that spot) and
+  only while you have not touched it; what you break or place is ordinary blocks.
+- Moving is from photo to photo: each one gets an arrow to its nearest neighbour in every direction,
+  unless a wall stands between them.
+- The block world comes from open map data: laser-scanned terrain and registered building outlines
+  in the Netherlands, PLATEAU building models in Tokyo, OpenStreetMap and elevation tiles elsewhere.
+- The block grid is turned to run along the streets of the place rather than north-up.
+- Shaped blocks are one block number per shape and heading, drawn box by box; textures are looked up
+  by position, so a slab shows the lower half of its block's texture and a door its own picture.
 
-Hangi sesin hangi dosyayı çaldığı `public/sounds/pack.json` içinde yazar, istediğin gibi
-değiştirebilirsin:
+## Source files
 
-```json
-{ "gain": 1, "dig.grass": ["dig/grass1.ogg", "dig/grass2.ogg"], "boom": "patlama.ogg" }
-```
-
-Adlar: `dig`, `place`, `step` (üçü malzemeye göre de verilebilir: `dig.stone`, `dig.grass`,
-`dig.gravel`, `dig.wood`, `dig.sand`, `dig.snow`, `dig.glass`), `swing`, `hit`, `flint`, `fuse`,
-`boom`, `hurt`, `pick`, `pop`, `eat`, `level`, `bow`, `thud` (okun saplanması), `bones` ve `rattle`
-(iskeletin darbe alması ve dağılması). Liste verirsen her seferinde biri rastgele çalınır; bulunamayan
-dosyanın sesi üretilen haliyle kalır.
-
-Klasörün tamamını kopyaladıysan `npm run sounds:prune` kullanılmayan dosyaları siler. Kopyaladığın
-ses dosyaları `.gitignore` ile depo dışında tutulur. Yalnızca kullanma hakkın olan dosyaları koy ve
-başkasının dosyalarını projeyle birlikte yayımlama.
-
-## Doku paketi
-
-Görseller de aynı mantıkla değiştirilebilir. Depodaki çizimlerin hepsi oyunun kendi çizimidir;
-`public/textures/` klasörüne koyduğun görseller onların yerine geçer. Klasör düzeni ve dosya adları
-kaynak paketlerindeki `textures` klasörüyle aynıdır:
-
-```
-public/textures/block/stone.png
-public/textures/item/iron_sword.png
-public/textures/gui/sprites/hud/hotbar.png
-public/textures/gui/container/inventory.png
-```
-
-Kapsam: blok dokuları (kırdığın ve koyduğun bloklar, simgeler, eldeki blok), eşya simgeleri (kılıç,
-kazma, çakmak, yay, iskelet yumurtası, ekmek), alt bar (bar, seçim çerçevesi, kalpler, açlık, deneyim)
-ve envanter pencereleri. İskeletin kendisi, oklar ve karakterin kolu oyunun kendi çizimi olarak kalır.
-
-Hangi dokunun hangi dosyadan geldiği `public/textures/pack.json` içinde yazar. Gerçek dünyadaki
-malzemelerin birebir karşılığı olmadığı için (asfalt, kaldırım, kiremit…) en yakın doku seçildi;
-istediğini değiştirebilirsin. Gri gelen dokular (çim, yaprak, su) `tint` rengiyle boyanır:
-
-```json
-{ "blocks": { "asphalt": "block/gray_concrete_powder.png", "grass_top": { "file": "block/grass_block_top.png", "tint": "#91bd59" } } }
-```
-
-- `npm run textures`: oyun bu bilgisayarda kuruluysa listedeki görselleri kendi kurulumundan kopyalar.
-- `npm run textures:prune`: klasörün tamamını kopyaladıysan kullanılmayan dosyaları siler.
-
-Bulunamayan dosyanın yerinde oyunun kendi çizimi kalır. Kopyaladığın görseller `.gitignore` ile depo
-dışında tutulur; `npm run build` ise `public/` klasörünü çıktıya olduğu gibi kopyalar, yani derlemeyi
-yayımlarsan oradaki dosyalar da yayımlanır. Yalnızca kullanma hakkın olan dosyaları koy.
-
-## Nasıl çalışıyor
-
-- Panorama, çekildiği noktadan dünyaya yansıtılır. Bir yüzey yalnızca o noktadan görünüyorsa
-  (çekim noktasından çizilen mesafe haritasıyla sınanır) ve sen dokunmadıysan fotoğrafı taşır.
-  Kırdığın yerin arkası ve koyduğun bloklar normal blok olarak kalır.
-- Gezinme fotoğraftan fotoğrafadır: her fotoğraftan, her yönde en yakın komşuya bir ok çıkar.
-  Arada duvar varsa ok çıkmaz (çekim sırasındaki ardışık kareler hariç: orada araç gerçekten geçmiş).
-  Geçişte iki fotoğraf birbirine karışırken kamera yeni çekim noktasına kayar.
-- Çekim aracı görünmez: Amsterdam'da aracın kapattığı zemin, bir önceki ve bir sonraki panoramanın
-  aynı zemini gördüğü piksellerden yeniden kurulur. İstanbul'da (konumlar bunun için yeterince
-  hassas değil) çekimi yapan kişinin olduğu alt bölge, çevresindeki zeminin renkleriyle yumuşakça
-  doldurulur.
-- Kamera yüksekliği veride yok, ölçülüyor: komşu iki panorama aynı kaldırım taşını görür; ikisi de
-  zemine yansıtılıp karşılaştırılır, görüntülerin çakıştığı yükseklik gerçek yüksekliktir
-  (Amsterdam'ın 2025 aracı için 2,24 m).
-- Bloklar ölçülen yüzeyden kurulur; zemin bloklara yuvarlanmak yerine ölçülen yüksekliğine oturtulur.
-- Blok dünyasında ağaç yoktur: yalnızca zemin, su, yollar ve binalar. Bloklar bir ağaç tacının
-  biçimini tutturamadığı için fotoğraf üstlerine düzgün oturmuyordu; şimdi fotoğraftaki ağaç,
-  arkasındaki yüzeyin üstünde durur. Lamba, tente, anıt gibi bina sayılmayan yüksek nesneler için
-  de aynısı geçerli.
-
-## Kaynak dosyalar
-
-| Dosya | İçerik |
+| File | What it holds |
 | --- | --- |
-| `src/main.js` | Oyun döngüsü, girdi, menü, can/açlık/deneyim |
-| `src/pano.js` | Panorama kaynakları, yükleme, geçişler ve oklar, mesafe haritası, aracı zeminden silme, kamera yüksekliği ölçümü |
-| `src/ui.js`, `src/items.js` | Alt bar, envanter penceresi, harita; eşyalar, simgeler, üretim tarifleri |
-| `src/textures.js`, `src/pack.js` | Oyunun kendi blok dokuları; isteğe bağlı doku paketi |
-| `scripts/` | Ses ve doku klasörlerini kendi kurulumundan doldurma ve budama komutları |
-| `src/hand.js`, `src/fx.js`, `src/mobs.js`, `src/sound.js` | Kol ve eldeki eşya; TNT, patlama, parçacıklar; iskelet okçular ve oklar; sesler ve ses paketi |
-| `src/lidar.js` | AHN lazer taraması ve 3D BAG bina sınırları (Hollanda) |
-| `src/skyline.js`, `src/align.js` | GPS'li görüntüler için gökyüzü çizgisiyle hizalama; zemin eşleştirme |
-| `src/materials.js` | Blok ve fotoğraf yansıtma shader'ları |
-| `src/world.js`, `src/mesher.js` | Chunk deposu, blok düzenleme, greedy mesher, zemini ölçülen yüksekliğe oturtma |
-| `src/worker.js`, `src/generator.js`, `src/tiles.js` | Harita verisi → voxel dünya ve uzak silüet |
+| `src/main.js` | Game loop, input, menu, places, placing and breaking, health/hunger/experience |
+| `src/blocks.js`, `src/textures.js` | Every block and shape; the game's own drawings |
+| `src/mesher.js`, `src/world.js`, `src/player.js` | Meshing, chunk store and edits, movement and collision |
+| `src/pano.js`, `src/google.js` | Street photos: sources, loading, stepping between them; Google Street View tiles |
+| `src/materials.js` | Shaders for the blocks and the photo projection |
+| `src/ui.js`, `src/items.js`, `src/hand.js`, `src/title.js`, `src/i18n.js` | HUD, inventory, icons, held item, title screen, translations |
+| `src/fx.js`, `src/mobs.js`, `src/nether.js`, `src/sound.js` | Explosions, creatures, the Nether, sounds |
+| `src/worker.js`, `src/generator.js`, `src/tiles.js`, `src/lidar.js`, `src/grid.js` | Map data to voxel world |
+| `src/pack.js`, `scripts/` | Optional texture and sound packs |
 
-## Veri ve lisanslar
+## Data and licences
 
-- Amsterdam panoramaları: Gemeente Amsterdam açık verisi (kullanım koşulları için veri portalına bak)
-- AHN yükseklik verisi: Rijkswaterstaat / PDOK, açık veri
-- Bina sınırları: [3D BAG](https://3dbag.nl), CC BY 4.0
-- İstanbul sokak fotoğrafları: [Panoramax](https://panoramax.fr) katkıcıları, CC BY-SA 4.0
-- Yollar, su, yeşil alan: © OpenStreetMap katkıcıları, [OpenFreeMap](https://openfreemap.org)
-- Listede olmayan koordinatlar için: Mapillary (kendi token'ınla), [Project PLATEAU](https://www.mlit.go.jp/plateau/)
-  (Tokyo binaları, [indigo-lab/plateau-lod2-mvt](https://github.com/indigo-lab/plateau-lod2-mvt), CC BY 4.0),
-  GSI Japonya ve Mapzen Terrarium yükseklik verisi
+- Amsterdam panoramas: open data of [Gemeente Amsterdam](https://api.data.amsterdam.nl/panorama/)
+- Elevation: [AHN](https://www.ahn.nl) (PDOK, open data); building outlines: [3D BAG](https://3dbag.nl), CC BY 4.0
+- Roads, water, land cover: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, via [OpenFreeMap](https://openfreemap.org)
+- Tokyo buildings: [Project PLATEAU](https://www.mlit.go.jp/plateau/); elevation elsewhere: GSI Japan, Mapzen Terrarium
+- Volunteer panoramas where used: [Panoramax](https://panoramax.fr) contributors, CC BY-SA 4.0
+- Street View: © Google, shown through the Map Tiles API with the player's own key
+- Menu typeface: [Jersey 15](https://fonts.google.com/specimen/Jersey+15), SIL Open Font License, loaded from Google Fonts

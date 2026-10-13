@@ -1,6 +1,7 @@
 // Turns map features into voxels: full-detail padded chunks near the player and a coarse
 // heightfield mesh ("far tiles") for the skyline beyond them.
-import { CHUNK, PAD, PS, MARGIN, MAX_Y, FAR_TILE, FAR_CELL } from './config.js';
+import { CHUNK, PAD, PS, MARGIN, MAX_Y, MIN_EDIT_Y, BEDROCK_TOP, FAR_TILE, FAR_CELL } from './config.js';
+import { netherColumn, diamondAt } from './nether.js';
 import { B, TEX_TOP } from './blocks.js';
 import { fillPolygon, strokeSegment } from './raster.js';
 import { SURF, nextStamp } from './tiles.js';
@@ -315,10 +316,19 @@ export class Generator {
         const wet = s === SURF.WATER || s === SURF.OCEAN;
         const sub = wet || s === SURF.SAND ? B.SAND : B.DIRT;
 
+        const wx = ox + OFF + px, wz = oz + OFF + pz;
+        for (let y = 2; y <= groundTop - 4; y++) vox[y * SY + col] = y < 15 && diamondAt(wx, y, wz) ? B.DIAMOND_ORE : B.STONE;
+        for (let y = Math.max(2, groundTop - 3); y < groundTop; y++) vox[y * SY + col] = sub;
+        // the floor of the world: solid at the bottom, thinning out over the next layers. Hashed
+        // from world coordinates so the padded borders of neighbouring chunks agree.
         vox[col] = B.BEDROCK;
         vox[SY + col] = B.BEDROCK;
-        for (let y = 2; y <= groundTop - 4; y++) vox[y * SY + col] = B.STONE;
-        for (let y = Math.max(2, groundTop - 3); y < groundTop; y++) vox[y * SY + col] = sub;
+        const hb = Math.imul(wx, 0x9e3779b1) ^ Math.imul(wz, 0x85ebca6b);
+        for (let y = MIN_EDIT_Y; y < BEDROCK_TOP && y < groundTop; y++) {
+          if (((Math.imul(hb ^ y, 0xc2b2ae35) >>> 16) & 3) < BEDROCK_TOP - y) vox[y * SY + col] = B.BEDROCK;
+        }
+        // under the starting point: the cave of the small Nether (see nether.js)
+        netherColumn(vox, SY, col, wx, wz, groundTop);
         let colTop = groundTop;
 
         if (isB) {

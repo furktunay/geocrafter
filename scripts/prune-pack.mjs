@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const folder = process.argv[2];
 if (folder !== 'sounds' && folder !== 'textures') {
-  console.error('Kullanım: node scripts/prune-pack.mjs sounds | textures');
+  console.error('Usage: node scripts/prune-pack.mjs sounds | textures');
   process.exit(1);
 }
 const out = fileURLToPath(new URL(`../public/${folder}/`, import.meta.url));
@@ -38,4 +38,4 @@ function walk(dir) {
   }
 }
 walk(out);
-console.log(`${removed} kullanılmayan dosya silindi (${(bytes / 1048576).toFixed(1)} MB). Kalan: pack.json ve içinde adı geçen ${keep.size - 1} dosya.`);
+console.log(`Removed ${removed} unused file(s) (${(bytes / 1048576).toFixed(1)} MB). Kept: pack.json and the ${keep.size - 1} file(s) it names.`);
